@@ -9,12 +9,12 @@ from visualization_msgs.msg import Marker, MarkerArray
 class RRT2DNode(Node):
     def __init__(self):
         super().__init__('rrt_2d_node')
-        self.start_position = np.array([43, 52])
-        self.goal_position = np.array([91, 86])
-        self.map_size = np.array([100, 100])
+        self.start_position = np.array([0., 0.])
+        self.goal_position = np.array([3.2, -4.1])
+        self.map_size = np.array([10, 10])
         self.node_limit = 1000
-        self.goal_tolerance = 10
-        self.step_size = 1.5
+        self.goal_tolerance = 0.5
+        self.step_size = 0.2
         self.animate = True
 
         self.run_rrt_2D()
@@ -25,8 +25,10 @@ class RRT2DNode(Node):
         completed = False
 
         while len(node_list) < self.node_limit:
-            random_position_x = np.random.randint(0, self.map_size[0])
-            random_position_y = np.random.randint(0, self.map_size[1])
+            random_position_x = np.random.randint(
+                -self.map_size[0], self.map_size[0])
+            random_position_y = np.random.randint(
+                -self.map_size[1], self.map_size[1])
             random_position = np.array([random_position_x, random_position_y])
             min_distance = np.inf
             min_node = None
@@ -47,12 +49,18 @@ class RRT2DNode(Node):
                 min_distance = np.min([distance, min_distance])
             if completed:
                 break
-            new_node_unit_vec = min_node_vec / min_distance
-            new_node_val = min_node.val + new_node_unit_vec * self.step_size
-            new_node = TreeNode(new_node_val, min_node)
-            min_node.add_child(new_node)
-            node_list.append(new_node)
+            if min_distance != 0:
+                new_node_unit_vec = min_node_vec / min_distance
+                new_node_val = min_node.val + new_node_unit_vec * self.step_size
+                new_node = TreeNode(new_node_val, min_node)
+                min_node.add_child(new_node)
+                node_list.append(new_node)
 
+        if not completed:
+            print("Goal pose not found before node limit exceeded.")
+            return
+
+        self.publish_markers(node_list)
         self.plot_rrt(node_list)
 
     def publish_markers(self, node_list):
@@ -67,7 +75,6 @@ class RRT2DNode(Node):
             marker.ns = "rrt_markers"  # Set a unique namespace for each marker
             marker.id = node_list.index(node)
             marker.type = Marker.SPHERE
-            marker.type = Marker.SPHERE
             marker.action = Marker.ADD
             marker.scale.x = 0.1
             marker.scale.y = 0.1
@@ -78,13 +85,13 @@ class RRT2DNode(Node):
             marker.color.a = 1.0
             marker.pose.position.x = node.val[0]
             marker.pose.position.y = node.val[1]
-            marker.pose.position.z = 0  # 2D
+            marker.pose.position.z = 0.0  # 2D
             marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
     def plot_rrt(self, node_list):
-        plt.xlim(0, self.map_size[0])
-        plt.ylim(0, self.map_size[1])
+        plt.xlim(-self.map_size[0], self.map_size[0])
+        plt.ylim(-self.map_size[1], self.map_size[1])
         plt.scatter(self.start_position[0], self.start_position[1], c='r')
         plt.scatter(self.goal_position[0], self.goal_position[1], c='b')
         if self.animate:
@@ -103,7 +110,7 @@ class RRT2DNode(Node):
                          [current_node.val[1], current_node.parent.val[1]],
                          c='r')
                 if self.animate:
-                    plt.pause(0.05)
+                    plt.pause(0.0001)
             current_node = current_node.parent
         if self.animate:
             plt.ioff()

@@ -74,7 +74,6 @@ class RRT3DNode(Node):
             marker.ns = "rrt_markers"  # Set a unique namespace for each marker
             marker.id = node_list.index(node)
             marker.type = Marker.SPHERE
-            marker.type = Marker.SPHERE
             marker.action = Marker.ADD
             marker.scale.x = 0.1
             marker.scale.y = 0.1
