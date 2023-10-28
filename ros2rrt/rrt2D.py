@@ -88,6 +88,33 @@ class RRT2DNode(Node):
             marker.pose.position.y = node.val[1]
             marker.pose.position.z = 0.0  # 2D
             marker_array.markers.append(marker)
+        # Create markers for the obstacles
+        obstacle_1 = Circle(1.0, 1.0, 1.0)
+        obstacle_2 = Rectangle(-2.0, -2.0, 2.0, 2.0, 0.0)
+        obstacle_list = [obstacle_1, obstacle_2]
+        for obstacle in obstacle_list:
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.ns = "rrt_markers"
+            marker.id = obstacle_list.index(obstacle) + len(node_list)
+            marker.type = Marker.CUBE
+            marker.action = Marker.ADD
+            if isinstance(obstacle, Circle):
+                marker.scale.x = obstacle.radius * 2
+                marker.scale.y = obstacle.radius * 2
+            elif isinstance(obstacle, Rectangle):
+                marker.scale.x = obstacle.width
+                marker.scale.y = obstacle.height
+            marker.scale.z = 0.1
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 0.0
+            marker.color.a = 0.5
+            marker.pose.position.x = obstacle.x
+            marker.pose.position.y = obstacle.y
+            marker.pose.position.z = 0.0
+            marker.pose.orientation.w = 1.0
+            marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
     def plot_rrt(self, node_list):

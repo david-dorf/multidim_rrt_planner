@@ -87,6 +87,34 @@ class RRT3DNode(Node):
             marker.pose.position.y = node.val[1]
             marker.pose.position.z = node.val[2]
             marker_array.markers.append(marker)
+        # Create markers for obstacles
+        obstacle_1 = Sphere(1.5, 1.5, 1.5, 0.5)
+        obstacle_2 = Box(-1.5, -1.5, -1.5, 1.5, 1.5, 1.5, 0.0)
+        obstacle_list = [obstacle_1, obstacle_2]
+        for obstacle in obstacle_list:
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.ns = "rrt_markers"
+            marker.id = obstacle_list.index(obstacle) + len(node_list)
+            marker.type = Marker.CUBE
+            marker.action = Marker.ADD
+            if isinstance(obstacle, Sphere):
+                marker.type = Marker.SPHERE
+                marker.scale.x, marker.scale.y, marker.scale.z = [
+                    obstacle.radius] * 3  # Set all scales to radius
+            elif isinstance(obstacle, Box):
+                marker.scale.x = obstacle.width
+                marker.scale.y = obstacle.height
+                marker.scale.z = obstacle.depth
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 0.0
+            marker.color.a = 0.5
+            marker.pose.position.x = obstacle.x
+            marker.pose.position.y = obstacle.y
+            marker.pose.position.z = obstacle.z
+            marker.pose.orientation.w = 1.0
+            marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
     def plot_rrt_3D(self, node_list):
