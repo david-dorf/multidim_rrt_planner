@@ -1,9 +1,10 @@
 import rclpy
 from rclpy.node import Node
+from visualization_msgs.msg import Marker, MarkerArray
 import numpy as np
 import matplotlib.pyplot as plt
 from .submodules.TreeNode import TreeNode
-from visualization_msgs.msg import Marker, MarkerArray
+from .submodules.Obstacles import Circle, Rectangle
 
 
 class RRT2DNode(Node):
