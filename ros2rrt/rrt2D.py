@@ -3,6 +3,7 @@ from rclpy.node import Node
 import numpy as np
 import matplotlib.pyplot as plt
 from .submodules.TreeNode import TreeNode
+from visualization_msgs.msg import Marker, MarkerArray
 
 
 class RRT2DNode(Node):
@@ -53,6 +54,33 @@ class RRT2DNode(Node):
             node_list.append(new_node)
 
         self.plot_rrt(node_list)
+
+    def publish_markers(self, node_list):
+        marker_publisher = self.create_publisher(
+            MarkerArray, 'rrt_markers', 10)
+        marker_array = MarkerArray()
+
+        # Create markers for the RRT nodes and connections
+        for node in node_list:
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.ns = "rrt_markers"  # Set a unique namespace for each marker
+            marker.id = node_list.index(node)
+            marker.type = Marker.SPHERE
+            marker.type = Marker.SPHERE
+            marker.action = Marker.ADD
+            marker.scale.x = 0.1
+            marker.scale.y = 0.1
+            marker.scale.z = 0.1
+            marker.color.r = 0.0
+            marker.color.g = 1.0
+            marker.color.b = 0.0
+            marker.color.a = 1.0
+            marker.pose.position.x = node.val[0]
+            marker.pose.position.y = node.val[1]
+            marker.pose.position.z = 0  # 2D
+            marker_array.markers.append(marker)
+        marker_publisher.publish(marker_array)
 
     def plot_rrt(self, node_list):
         plt.xlim(0, self.map_size[0])

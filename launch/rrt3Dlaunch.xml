@@ -1,0 +1,7 @@
+<launch>
+  <node name="rviz2" pkg="rviz2" exec="rviz2"/>
+  <node pkg="ros2rrt" exec="map_frame_pub"/>
+  <node pkg="ros2rrt" exec="rrt3D">
+    <param name="config" value="/home/david/.rviz2/default.rviz" />
+  </node>
+</launch>
