@@ -17,6 +17,9 @@ class RRT2DNode(Node):
         self.goal_tolerance = 0.5
         self.step_size = 0.2
         self.animate = True
+        self.obstacle_1 = Circle(1.0, 1.0, 1.0)
+        self.obstacle_2 = Rectangle(-1.0, -1.0, 1.0, 1.0, 0.0)
+        self.obstacle_list = [self.obstacle_1, self.obstacle_2]
 
         self.run_rrt_2D()
 
@@ -54,15 +57,49 @@ class RRT2DNode(Node):
                 new_node_unit_vec = min_node_vec / min_distance
                 new_node_val = min_node.val + new_node_unit_vec * self.step_size
                 new_node = TreeNode(new_node_val, min_node)
+                collision = False  # Check if new_node collides with any obstacles
+                for obstacle in self.obstacle_list:
+                    if isinstance(obstacle, Circle):
+                        obstacle_vec = new_node.val - \
+                            np.array([obstacle.x, obstacle.y])
+                        obstacle_distance = np.linalg.norm(obstacle_vec)
+                        if obstacle_distance < obstacle.radius:
+                            collision = True
+                            break
+                    elif isinstance(obstacle, Rectangle):
+                        if (obstacle.x - obstacle.width/2 < new_node.val[0] < obstacle.x + obstacle.width/2) and (obstacle.y - obstacle.height/2 < new_node.val[1] < obstacle.y + obstacle.height/2):
+                            collision = True
+                            break
+                if collision:
+                    continue
                 min_node.add_child(new_node)
                 node_list.append(new_node)
 
         if not completed:
-            print("Goal pose not found before node limit exceeded.")
+            self.get_logger().info('Path not found')
             return
 
         self.publish_markers(node_list)
         self.plot_rrt(node_list)
+
+    def create_marker(self, marker_type, marker_id, color, scale, position):
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.ns = "rrt_markers"
+        marker.id = marker_id
+        marker.type = marker_type
+        marker.action = Marker.ADD
+        marker.scale.x = scale[0]
+        marker.scale.y = scale[1]
+        marker.scale.z = scale[2]
+        marker.color.r = color[0]
+        marker.color.g = color[1]
+        marker.color.b = color[2]
+        marker.color.a = color[3]
+        marker.pose.position.x = position[0]
+        marker.pose.position.y = position[1]
+        marker.pose.position.z = position[2]
+        return marker
 
     def publish_markers(self, node_list):
         marker_publisher = self.create_publisher(
@@ -71,50 +108,19 @@ class RRT2DNode(Node):
 
         # Create markers for the RRT nodes and connections
         for node in node_list:
-            marker = Marker()
-            marker.header.frame_id = "map"
-            marker.ns = "rrt_markers"  # Set a unique namespace for each marker
-            marker.id = node_list.index(node)
-            marker.type = Marker.SPHERE
-            marker.action = Marker.ADD
-            marker.scale.x = 0.1
-            marker.scale.y = 0.1
-            marker.scale.z = 0.1
-            marker.color.r = 0.0
-            marker.color.g = 1.0
-            marker.color.b = 0.0
-            marker.color.a = 1.0
-            marker.pose.position.x = node.val[0]
-            marker.pose.position.y = node.val[1]
-            marker.pose.position.z = 0.0  # 2D
+            marker = self.create_marker(Marker.SPHERE, node_list.index(node) + 2, [
+                0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [node.val[0], node.val[1], 0.0])
             marker_array.markers.append(marker)
         # Create markers for the obstacles
-        obstacle_1 = Circle(1.0, 1.0, 1.0)
-        obstacle_2 = Rectangle(-2.0, -2.0, 2.0, 2.0, 0.0)
-        obstacle_list = [obstacle_1, obstacle_2]
-        for obstacle in obstacle_list:
-            marker = Marker()
-            marker.header.frame_id = "map"
-            marker.ns = "rrt_markers"
-            marker.id = obstacle_list.index(obstacle) + len(node_list)
-            marker.type = Marker.CUBE
-            marker.action = Marker.ADD
+        for obstacle in self.obstacle_list:
             if isinstance(obstacle, Circle):
-                marker.scale.x = obstacle.radius * 2
-                marker.scale.y = obstacle.radius * 2
+                marker = self.create_marker(Marker.CYLINDER, self.obstacle_list.index(
+                    obstacle) + len(node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.radius * 2, obstacle.radius * 2, 0.1], [obstacle.x, obstacle.y, 0.0])
+                marker_array.markers.append(marker)
             elif isinstance(obstacle, Rectangle):
-                marker.scale.x = obstacle.width
-                marker.scale.y = obstacle.height
-            marker.scale.z = 0.1
-            marker.color.r = 1.0
-            marker.color.g = 0.0
-            marker.color.b = 0.0
-            marker.color.a = 0.5
-            marker.pose.position.x = obstacle.x
-            marker.pose.position.y = obstacle.y
-            marker.pose.position.z = 0.0
-            marker.pose.orientation.w = 1.0
-            marker_array.markers.append(marker)
+                marker = self.create_marker(Marker.CUBE, self.obstacle_list.index(
+                    obstacle) + len(node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.width, obstacle.height, 0.1], [obstacle.x, obstacle.y, 0.0])
+                marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
     def plot_rrt(self, node_list):

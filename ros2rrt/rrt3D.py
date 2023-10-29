@@ -13,10 +13,13 @@ class RRT3DNode(Node):
         self.start_position = np.array([0., 0., 0.])
         self.goal_position = np.array([2.4, 3.5, 2.1])
         self.map_size = np.array([5., 5., 5.])
-        self.node_limit = 5000
+        self.node_limit = 7000
         self.goal_tolerance = 1.3
         self.step_size = 0.15
         self.animate = True
+        self.obstacle_1 = Sphere(1.5, 1.5, 1.5, 2.5)
+        self.obstacle_2 = Box(-1.5, -1.5, -1.5, 1.5, 1.5, 1.5, 0.0)
+        self.obstacle_list = [self.obstacle_1, self.obstacle_2]
 
         self.run_rrt_3D()
 
@@ -57,64 +60,76 @@ class RRT3DNode(Node):
                 new_node_unit_vec = min_node_vec / min_distance
                 new_node_val = min_node.val + new_node_unit_vec * self.step_size
                 new_node = TreeNode(new_node_val, min_node)
+                collision = False  # Check if new_node collides with any obstacles
+                for obstacle in self.obstacle_list:
+                    if isinstance(obstacle, Sphere):
+                        obstacle_vec = new_node.val - \
+                            np.array([obstacle.x, obstacle.y, obstacle.z])
+                        obstacle_distance = np.linalg.norm(obstacle_vec)
+                        if obstacle_distance < obstacle.radius:
+                            collision = True
+                            break
+                    elif isinstance(obstacle, Box):
+                        if (obstacle.x - obstacle.width/2 < new_node.val[0] < obstacle.x + obstacle.width/2) and (obstacle.y - obstacle.height/2 < new_node.val[1] < obstacle.y + obstacle.height/2) and (obstacle.z - obstacle.depth/2 < new_node.val[2] < obstacle.z + obstacle.depth/2):
+                            collision = True
+                            break
+                if collision:
+                    continue
                 min_node.add_child(new_node)
                 node_list.append(new_node)
 
+        if not completed:
+            self.get_logger().info('Path not found')
+            return
+
         self.publish_markers(node_list)
         self.plot_rrt_3D(node_list)
+
+    def create_marker(self, marker_type, marker_id, color, scale, position):
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.ns = "rrt_markers"
+        marker.id = marker_id
+        marker.type = marker_type
+        marker.action = Marker.ADD
+        marker.scale.x = scale[0]
+        marker.scale.y = scale[1]
+        marker.scale.z = scale[2]
+        marker.color.r = color[0]
+        marker.color.g = color[1]
+        marker.color.b = color[2]
+        marker.color.a = color[3]
+        marker.pose.position.x = position[0]
+        marker.pose.position.y = position[1]
+        marker.pose.position.z = position[2]
+        return marker
 
     def publish_markers(self, node_list):
         marker_publisher = self.create_publisher(
             MarkerArray, 'rrt_markers', 10)
         marker_array = MarkerArray()
-
+        # Create markers for start and goal positions
+        start_marker = self.create_marker(Marker.SPHERE, 0, [
+            1.0, 0.0, 0.0, 1.0], [0.1, 0.1, 0.1], self.start_position)
+        goal_marker = self.create_marker(Marker.SPHERE, 1, [
+            0.0, 0.0, 1.0, 1.0], [0.1, 0.1, 0.1], self.goal_position)
+        marker_array.markers.append(start_marker)
+        marker_array.markers.append(goal_marker)
         # Create markers for the RRT nodes and connections
         for node in node_list:
-            marker = Marker()
-            marker.header.frame_id = "map"
-            marker.ns = "rrt_markers"  # Set a unique namespace for each marker
-            marker.id = node_list.index(node)
-            marker.type = Marker.SPHERE
-            marker.action = Marker.ADD
-            marker.scale.x = 0.1
-            marker.scale.y = 0.1
-            marker.scale.z = 0.1
-            marker.color.r = 0.0
-            marker.color.g = 1.0
-            marker.color.b = 0.0
-            marker.color.a = 1.0
-            marker.pose.position.x = node.val[0]
-            marker.pose.position.y = node.val[1]
-            marker.pose.position.z = node.val[2]
+            marker = self.create_marker(Marker.SPHERE, node_list.index(node) + 2, [
+                0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], node.val)
             marker_array.markers.append(marker)
         # Create markers for obstacles
-        obstacle_1 = Sphere(1.5, 1.5, 1.5, 0.5)
-        obstacle_2 = Box(-1.5, -1.5, -1.5, 1.5, 1.5, 1.5, 0.0)
-        obstacle_list = [obstacle_1, obstacle_2]
-        for obstacle in obstacle_list:
-            marker = Marker()
-            marker.header.frame_id = "map"
-            marker.ns = "rrt_markers"
-            marker.id = obstacle_list.index(obstacle) + len(node_list)
-            marker.type = Marker.CUBE
-            marker.action = Marker.ADD
+        for obstacle in self.obstacle_list:
             if isinstance(obstacle, Sphere):
-                marker.type = Marker.SPHERE
-                marker.scale.x, marker.scale.y, marker.scale.z = [
-                    obstacle.radius] * 3  # Set all scales to radius
+                marker = self.create_marker(Marker.SPHERE, self.obstacle_list.index(
+                    obstacle) + 2 + 2 * len(node_list), [1.0, 0.0, 0.0, 0.5], [obstacle.radius * 2, obstacle.radius * 2, obstacle.radius * 2], [obstacle.x, obstacle.y, obstacle.z])
+                marker_array.markers.append(marker)
             elif isinstance(obstacle, Box):
-                marker.scale.x = obstacle.width
-                marker.scale.y = obstacle.height
-                marker.scale.z = obstacle.depth
-            marker.color.r = 1.0
-            marker.color.g = 0.0
-            marker.color.b = 0.0
-            marker.color.a = 0.5
-            marker.pose.position.x = obstacle.x
-            marker.pose.position.y = obstacle.y
-            marker.pose.position.z = obstacle.z
-            marker.pose.orientation.w = 1.0
-            marker_array.markers.append(marker)
+                marker = self.create_marker(Marker.CUBE, self.obstacle_list.index(
+                    obstacle) + 2 + 2 * len(node_list), [1.0, 0.0, 0.0, 0.5], [obstacle.width, obstacle.height, obstacle.depth], [obstacle.x, obstacle.y, obstacle.z])
+                marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
     def plot_rrt_3D(self, node_list):
