@@ -1,6 +1,8 @@
 import rclpy
 from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from .submodules.TreeNode import TreeNode
@@ -80,7 +82,8 @@ class RRT2DNode(Node):
             return
 
         self.publish_markers(node_list)
-        self.plot_rrt(node_list)
+        self.publish_path(node_list)
+        self.plot_rrt_2D(node_list)
 
     def create_marker(self, marker_type, marker_id, color, scale, position):
         marker = Marker()
@@ -123,7 +126,23 @@ class RRT2DNode(Node):
                 marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
-    def plot_rrt(self, node_list):
+    def publish_path(self, node_list):
+        path_publisher = self.create_publisher(Path, 'rrt_path', 10)
+        path = Path()
+        path.header.frame_id = "map"
+        current_node = node_list[-1]
+        while current_node.parent:
+            pose = PoseStamped()
+            pose.header.frame_id = "map"
+            pose.header.stamp = self.get_clock().now().to_msg()
+            pose.pose.position.x = current_node.val[0]
+            pose.pose.position.y = current_node.val[1]
+            pose.pose.position.z = 0.0
+            path.poses.append(pose)
+            current_node = current_node.parent
+        path_publisher.publish(path)
+
+    def plot_rrt_2D(self, node_list):
         plt.xlim(-self.map_size[0], self.map_size[0])
         plt.ylim(-self.map_size[1], self.map_size[1])
         plt.scatter(self.start_position[0], self.start_position[1], c='r')
