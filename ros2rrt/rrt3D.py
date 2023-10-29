@@ -1,6 +1,8 @@
 import rclpy
 from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from .submodules.TreeNode import TreeNode
@@ -83,6 +85,7 @@ class RRT3DNode(Node):
             return
 
         self.publish_markers(node_list)
+        self.publish_path(node_list)
         self.plot_rrt_3D(node_list)
 
     def create_marker(self, marker_type, marker_id, color, scale, position):
@@ -131,6 +134,22 @@ class RRT3DNode(Node):
                     obstacle) + 2 + 2 * len(node_list), [1.0, 0.0, 0.0, 0.5], [obstacle.width, obstacle.height, obstacle.depth], [obstacle.x, obstacle.y, obstacle.z])
                 marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
+
+    def publish_path(self, node_list):
+        path_publisher = self.create_publisher(Path, 'rrt_path', 10)
+        path = Path()
+        path.header.frame_id = "map"
+        current_node = node_list[-1]
+        while current_node.parent:
+            pose = PoseStamped()
+            pose.header.frame_id = "map"
+            pose.header.stamp = self.get_clock().now().to_msg()
+            pose.pose.position.x = current_node.val[0]
+            pose.pose.position.y = current_node.val[1]
+            pose.pose.position.z = current_node.val[2]
+            path.poses.append(pose)
+            current_node = current_node.parent
+        path_publisher.publish(path)
 
     def plot_rrt_3D(self, node_list):
         fig = plt.figure()
