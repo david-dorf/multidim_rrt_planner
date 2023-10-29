@@ -10,6 +10,40 @@ from .submodules.Obstacles import Circle, Rectangle
 
 
 class RRT2DNode(Node):
+    """
+    Generates a 2D RRT path and publishes it as a Path message and as a set of markers
+
+    Attributes
+    ----------
+    start_position : np.array
+        The starting position of the RRT
+    goal_position : np.array
+        The goal position of the RRT
+    map_size : np.array
+        The size of the map
+    node_limit : int
+        The maximum number of nodes to generate
+    goal_tolerance : float
+        The maximum distance between the goal and the final node
+    step_size : float
+        The step size for each node
+    animate : bool
+        Whether or not to animate the RRT
+
+    Methods
+    -------
+    run_rrt_2D()
+        Generates the RRT
+    create_marker()
+        Creates a marker for visualization
+    publish_markers()
+        Publishes the markers
+    publish_path()
+        Publishes the path
+    plot_rrt_2D()
+        Plots the RRT
+    """
+
     def __init__(self):
         super().__init__('rrt_2d_node')
         self.start_position = np.array([0., 0.])
@@ -26,6 +60,9 @@ class RRT2DNode(Node):
         self.run_rrt_2D()
 
     def run_rrt_2D(self):
+        """
+        Generates the RRT
+        """
         start_node = TreeNode(self.start_position, None)
         node_list = [start_node]
         completed = False
@@ -85,7 +122,23 @@ class RRT2DNode(Node):
         self.publish_path(node_list)
         self.plot_rrt_2D(node_list)
 
-    def create_marker(self, marker_type, marker_id, color, scale, position):
+    def create_marker(self, marker_type: int, marker_id: int, color: list, scale: list, position: list) -> Marker:
+        """
+        Creates a marker for visualization.
+
+        Parameters
+        ----------
+        marker_type : int
+            The type of marker
+        marker_id : int
+            The ID of the marker
+        color : list
+            The color of the marker
+        scale : list
+            The scale of the marker
+        position : list
+            The position of the marker
+        """
         marker = Marker()
         marker.header.frame_id = "map"
         marker.ns = "rrt_markers"
@@ -104,7 +157,15 @@ class RRT2DNode(Node):
         marker.pose.position.z = position[2]
         return marker
 
-    def publish_markers(self, node_list):
+    def publish_markers(self, node_list: list):
+        """
+        Publishes the markers
+
+        Parameters
+        ----------
+        node_list : list
+            The list of nodes in the RRT
+        """
         marker_publisher = self.create_publisher(
             MarkerArray, 'rrt_markers', 10)
         marker_array = MarkerArray()
@@ -126,7 +187,15 @@ class RRT2DNode(Node):
                 marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
-    def publish_path(self, node_list):
+    def publish_path(self, node_list: list):
+        """
+        Publishes the path
+
+        Parameters
+        ----------
+        node_list : list
+            The list of nodes in the RRT
+        """
         path_publisher = self.create_publisher(Path, 'rrt_path', 10)
         path = Path()
         path.header.frame_id = "map"
@@ -143,6 +212,14 @@ class RRT2DNode(Node):
         path_publisher.publish(path)
 
     def plot_rrt_2D(self, node_list):
+        """
+        Plots the RRT
+
+        Parameters
+        ----------
+        node_list : list
+            The list of nodes in the RRT
+        """
         plt.xlim(-self.map_size[0], self.map_size[0])
         plt.ylim(-self.map_size[1], self.map_size[1])
         plt.scatter(self.start_position[0], self.start_position[1], c='r')
