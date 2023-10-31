@@ -2,4 +2,5 @@
   <node name="rviz2" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share ros2rrt)/config/rrtconfig.rviz"/>
   <node pkg="ros2rrt" exec="map_frame_pub"/>
   <node pkg="ros2rrt" exec="rrt2D"/>
+  <node pkg="ros2rrt" exec="occupancy_pub"/>
 </launch>

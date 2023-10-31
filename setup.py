@@ -26,7 +26,8 @@ setup(
         'console_scripts': [
             'rrt2D = ros2rrt.rrt2D:main',
             'rrt3D = ros2rrt.rrt3D:main',
-            'map_frame_pub = ros2rrt.map_frame_pub:main'
+            'map_frame_pub = ros2rrt.map_frame_pub:main',
+            'occupancy_pub = ros2rrt.occupancy_pub:main',
         ],
     },
 )
