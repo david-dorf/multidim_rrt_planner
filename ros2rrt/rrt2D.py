@@ -113,6 +113,13 @@ class RRT2DNode(Node):
                             break
                 if collision:
                     continue
+                wall_collision = False  # Check if new_node is closer than a step size to the wall
+                for i in range(len(new_node.val)):
+                    if np.abs(new_node.val[i]) > self.map_size[i] - self.step_size:
+                        wall_collision = True
+                        break
+                if wall_collision:
+                    continue
                 min_node.add_child(new_node)
                 node_list.append(new_node)
 
@@ -132,6 +139,7 @@ class RRT2DNode(Node):
         - msg (OccupancyGrid): The received OccupancyGrid message.
         """
         self.map_data = msg.data
+        self.map_size = np.array([msg.info.width, msg.info.height])
 
     def create_marker(self, marker_type: int, marker_id: int, color: list, scale: list, position: list) -> Marker:
         """
