@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped
-from nav_msgs.msg import Path
+from nav_msgs.msg import Path, OccupancyGrid
 import numpy as np
 import matplotlib.pyplot as plt
 from .submodules.TreeNode import TreeNode
@@ -56,7 +56,9 @@ class RRT2DNode(Node):
         self.obstacle_1 = Circle(1.0, 1.0, 1.0)
         self.obstacle_2 = Rectangle(-1.0, -1.0, 1.0, 1.0, 0.0)
         self.obstacle_list = [self.obstacle_1, self.obstacle_2]
-
+        self.subscribed_map = None
+        self.occupancy_grid_subscription = self.create_subscription(
+            OccupancyGrid, 'occupancy_grid_topic', self.occupancy_grid_callback, 10)
         self.run_rrt_2D()
 
     def run_rrt_2D(self):
@@ -121,6 +123,15 @@ class RRT2DNode(Node):
         self.publish_markers(node_list)
         self.publish_path(node_list)
         self.plot_rrt_2D(node_list)
+
+    def occupancy_grid_callback(self, msg):
+        """
+        Callback for the OccupancyGrid subscriber.
+
+        Parameters:
+        - msg (OccupancyGrid): The received OccupancyGrid message.
+        """
+        self.map_data = msg.data
 
     def create_marker(self, marker_type: int, marker_id: int, color: list, scale: list, position: list) -> Marker:
         """
