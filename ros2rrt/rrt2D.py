@@ -140,6 +140,17 @@ class RRT2DNode(Node):
         """
         self.map_data = msg.data
         self.map_size = np.array([msg.info.width, msg.info.height])
+        self.map_matrix = np.array(self.map_data).reshape(
+            (msg.info.height, msg.info.width))
+        self.pixel_centers = np.array([np.array([i, j]) for i in range(
+            msg.info.width) for j in range(msg.info.height)])
+        self.pixel_centers = self.pixel_centers * msg.info.resolution + \
+            np.array([msg.info.origin.position.x,
+                      msg.info.origin.position.y])
+        self.pixel_centers = self.pixel_centers.reshape(
+            (msg.info.height, msg.info.width, 2))
+        self.wall_indices = np.where(self.map_matrix == 100)
+        self.wall_centers = self.pixel_centers[self.wall_indices]
 
     def create_marker(self, marker_type: int, marker_id: int, color: list, scale: list, position: list) -> Marker:
         """
@@ -205,6 +216,33 @@ class RRT2DNode(Node):
                     obstacle) + len(node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.width, obstacle.height, 0.1], [obstacle.x, obstacle.y, 0.0])
                 marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
+
+    def set_start_goal(self, start, goal):
+        start_x, start_y = start
+        goal_x, goal_y = goal
+        if not (-self.map_size[0] < start_x < self.map_size[0]):
+            raise ValueError("Start is out of map bounds.")
+        if not (-self.map_size[1] < start_y < self.map_size[1]):
+            raise ValueError("Start is out of map bounds.")
+        if not (-self.map_size[0] < goal_x < self.map_size[0]):
+            raise ValueError("Goal is out of map bounds.")
+        if not (-self.map_size[1] < goal_y < self.map_size[1]):
+            raise ValueError("Goal is out of map bounds.")
+        for obstacle in self.obstacle_list:
+            if isinstance(obstacle, Circle):
+                obstacle_vec = np.array(
+                    [start_x - obstacle.x, start_y - obstacle.y])
+                obstacle_distance = np.linalg.norm(obstacle_vec)
+                if obstacle_distance < obstacle.radius:
+                    raise ValueError("Start is inside an obstacle.")
+            elif isinstance(obstacle, Rectangle):
+                if (obstacle.x - obstacle.width/2 < start_x < obstacle.x + obstacle.width/2) and (obstacle.y - obstacle.height/2 < start_y < obstacle.y + obstacle.height/2):
+                    raise ValueError("Start is inside an obstacle.")
+        for pixel_center in self.wall_centers:
+            if np.linalg.norm(np.array([start_x, start_y]) - pixel_center) < self.step_size:
+                raise ValueError("Start is too close to a wall.")
+            if np.linalg.norm(np.array([goal_x, goal_y]) - pixel_center) < self.step_size:
+                raise ValueError("Goal is too close to a wall.")
 
     def publish_path(self, node_list: list):
         """
