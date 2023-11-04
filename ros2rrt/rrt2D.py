@@ -66,6 +66,7 @@ class RRT2DNode(Node):
         else:
             self.map_size = np.array([10, 10])
             self.map_resolution = 1.0
+        self.node_list = []
         self.node_limit = 5000
         self.goal_tolerance = 0.2
         self.step_size = 0.05
@@ -74,6 +75,7 @@ class RRT2DNode(Node):
         self.obstacle_1 = Circle(1.0, 1.0, 1.0)
         self.obstacle_2 = Rectangle(-1.0, -1.0, 1.0, 1.0, 0.0)
         self.obstacle_list = [self.obstacle_1, self.obstacle_2]
+        self.timer = self.create_timer(1.0, self.timer_callback)
         self.run_rrt_2D()
 
     def run_rrt_2D(self):
@@ -85,10 +87,9 @@ class RRT2DNode(Node):
                 self.get_logger().info('Waiting for map data...')
                 rclpy.spin_once(self)
         start_node = TreeNode(self.start_position, None)
-        node_list = [start_node]
+        self.node_list = [start_node]
         completed = False
-
-        while len(node_list) < self.node_limit:
+        while len(self.node_list) < self.node_limit:
             random_position_x = np.random.uniform(
                 -(self.map_size[0] * self.step_size)/2, (self.map_size[0] * self.step_size)/2)
             random_position_y = np.random.uniform(
@@ -96,13 +97,13 @@ class RRT2DNode(Node):
             random_position = np.array([random_position_x, random_position_y])
             min_distance = np.inf
             min_node = None
-            for node in node_list:
+            for node in self.node_list:
                 goal_vec = self.goal_position - node.val
                 goal_distance = np.linalg.norm(goal_vec)
                 goal_node = TreeNode(self.goal_position, node)
                 if goal_distance < self.goal_tolerance:
                     node.add_child(goal_node)
-                    node_list.append(goal_node)
+                    self.node_list.append(goal_node)
                     completed = True
                     break
                 new_node_vec = random_position - node.val  # Find node closest to random point
@@ -117,7 +118,6 @@ class RRT2DNode(Node):
                 new_node_unit_vec = min_node_vec / min_distance
                 new_node_val = min_node.val + new_node_unit_vec * self.step_size
                 new_node = TreeNode(new_node_val, min_node)
-
                 obstacle_collision = False  # Check if new_node collides with any obstacles
                 if self.obstacle_list:
                     for obstacle in self.obstacle_list:
@@ -134,7 +134,6 @@ class RRT2DNode(Node):
                                 break
                     if obstacle_collision:
                         continue
-
                 wall_collision = False  # Check if new_node is closer than a step size to the wall
                 if self.map_sub_mode:
                     for pixel_center in self.wall_centers:
@@ -145,15 +144,18 @@ class RRT2DNode(Node):
                     continue
 
                 min_node.add_child(new_node)
-                node_list.append(new_node)
-
+                self.node_list.append(new_node)
+                self.publish_markers()
         if not completed:
             self.get_logger().info('Path not found')
             return
 
-        self.publish_markers(node_list)
-        self.publish_path(node_list)
-        self.plot_rrt_2D(node_list)
+    def timer_callback(self):
+        """
+        Timer callback for publishing the markers and path
+        """
+        self.publish_markers()
+        self.publish_path()
 
     def occupancy_grid_callback(self, msg):
         """
@@ -212,40 +214,31 @@ class RRT2DNode(Node):
         marker.pose.position.z = position[2]
         return marker
 
-    def publish_markers(self, node_list: list):
+    def publish_markers(self):
         """
         Publishes the markers
-
-        Parameters
-        ----------
-        node_list : list
-            The list of nodes in the RRT
         """
         marker_publisher = self.create_publisher(
             MarkerArray, 'rrt_markers', 10)
         marker_array = MarkerArray()
-
-        # Create markers for the RRT nodes and connections
-        for node in node_list:
-            marker = self.create_marker(Marker.SPHERE, node_list.index(node) + 2, [
+        for node in self.node_list:
+            marker = self.create_marker(Marker.SPHERE, self.node_list.index(node) + 2, [
                 0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [node.val[0], node.val[1], 0.0])
             marker_array.markers.append(marker)
-        # Create markers for the obstacles
         for obstacle in self.obstacle_list:
             if isinstance(obstacle, Circle):
                 marker = self.create_marker(Marker.CYLINDER, self.obstacle_list.index(
-                    obstacle) + len(node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.radius * 2, obstacle.radius * 2, 0.1], [obstacle.x, obstacle.y, 0.0])
+                    obstacle) + len(self.node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.radius * 2, obstacle.radius * 2, 0.1], [obstacle.x, obstacle.y, 0.0])
                 marker_array.markers.append(marker)
             elif isinstance(obstacle, Rectangle):
                 marker = self.create_marker(Marker.CUBE, self.obstacle_list.index(
-                    obstacle) + len(node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.width, obstacle.height, 0.1], [obstacle.x, obstacle.y, 0.0])
+                    obstacle) + len(self.node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.width, obstacle.height, 0.1], [obstacle.x, obstacle.y, 0.0])
                 marker_array.markers.append(marker)
-        # Create markers for the start and goal positions
         marker = self.create_marker(Marker.SPHERE, 0, [
-            1.0, 0.0, 0.0, 1.0], [0.1, 0.1, 0.1], [self.start_position[0], self.start_position[1], 0.0])
+            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1], 0.0])
         marker_array.markers.append(marker)
         marker = self.create_marker(Marker.SPHERE, 1, [
-            0.0, 0.0, 1.0, 1.0], [0.1, 0.1, 0.1], [self.goal_position[0], self.goal_position[1], 0.0])
+            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1], 0.0])
         marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
@@ -276,19 +269,14 @@ class RRT2DNode(Node):
             if np.linalg.norm(np.array([goal_x, goal_y]) - pixel_center) < self.step_size:
                 raise ValueError("Goal is too close to a wall.")
 
-    def publish_path(self, node_list: list):
+    def publish_path(self):
         """
         Publishes the path
-
-        Parameters
-        ----------
-        node_list : list
-            The list of nodes in the RRT
         """
         path_publisher = self.create_publisher(Path, 'rrt_path', 10)
         path = Path()
         path.header.frame_id = "map"
-        current_node = node_list[-1]
+        current_node = self.node_list[-1]
         while current_node.parent:
             pose = PoseStamped()
             pose.header.frame_id = "map"
@@ -299,56 +287,6 @@ class RRT2DNode(Node):
             path.poses.append(pose)
             current_node = current_node.parent
         path_publisher.publish(path)
-
-    def plot_rrt_2D(self, node_list):
-        """
-        Plots the RRT
-
-        Parameters
-        ----------
-        node_list : list
-            The list of nodes in the RRT
-        """
-        plt.xlim(-(self.map_size[0] * self.map_resolution)/2,
-                 (self.map_size[0] * self.map_resolution)/2)
-        plt.ylim(-(self.map_size[1] * self.map_resolution)/2,
-                 (self.map_size[1] * self.map_resolution)/2)
-        plt.scatter(self.start_position[0], self.start_position[1], c='r')
-        plt.scatter(self.goal_position[0], self.goal_position[1], c='b')
-        if self.map_sub_mode:
-            plt.scatter(self.wall_centers[:, 0],
-                        self.wall_centers[:, 1], c='k', s=1)
-        if self.obstacle_list:
-            for obstacle in self.obstacle_list:
-                if isinstance(obstacle, Circle):
-                    circle = plt.Circle(
-                        (obstacle.x, obstacle.y), obstacle.radius, color='k')
-                    plt.gcf().gca().add_artist(circle)
-                elif isinstance(obstacle, Rectangle):
-                    rectangle = plt.Rectangle((obstacle.x - obstacle.width/2, obstacle.y - obstacle.height/2),
-                                              obstacle.width, obstacle.height, color='k')
-                    plt.gcf().gca().add_artist(rectangle)
-        if self.animate:
-            plt.ion()
-        for node in node_list:
-            if node.parent:
-                plt.plot([node.val[0], node.parent.val[0]],
-                         [node.val[1], node.parent.val[1]],
-                         'g')
-                if self.animate:
-                    plt.pause(0.05)
-        current_node = node_list[-1]
-        while current_node.parent:
-            if current_node.parent:
-                plt.plot([current_node.val[0], current_node.parent.val[0]],
-                         [current_node.val[1], current_node.parent.val[1]],
-                         c='r')
-                if self.animate:
-                    plt.pause(0.0001)
-            current_node = current_node.parent
-        if self.animate:
-            plt.ioff()
-        plt.show()
 
 
 def main(args=None):
