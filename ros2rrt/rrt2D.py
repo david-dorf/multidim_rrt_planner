@@ -46,34 +46,53 @@ class RRT2DNode(Node):
 
     def __init__(self):
         super().__init__('rrt_2d_node')
-        self.start_position = np.array([0., 0.])
-        self.goal_position = np.array([3.2, -4.1])
-        self.map_size = np.array([10, 10])
+        self.declare_parameters(
+            namespace='',
+            parameters=[
+                ('start_position', [0., 0.]),
+                ('goal_position', [1., -1.]),
+                ('map_sub_mode', False)
+            ]
+        )
+        self.start_position = np.array(
+            self.get_parameter('start_position').value)
+        self.goal_position = np.array(
+            self.get_parameter('goal_position').value)
+        self.map_sub_mode = self.get_parameter('map_sub_mode').value
+        if self.map_sub_mode:
+            self.subscribed_map = None
+            self.wall_centers = None
+            self.map_size = None
+            self.occupancy_grid_subscription = self.create_subscription(
+                OccupancyGrid, 'occupancy_grid_topic', self.occupancy_grid_callback, 10)
+        else:
+            self.map_size = np.array([10, 10])
         self.node_limit = 1000
         self.goal_tolerance = 0.5
-        self.step_size = 0.2
+        self.step_size = 0.1
         self.animate = True
         self.obstacle_1 = Circle(1.0, 1.0, 1.0)
         self.obstacle_2 = Rectangle(-1.0, -1.0, 1.0, 1.0, 0.0)
         self.obstacle_list = [self.obstacle_1, self.obstacle_2]
-        self.subscribed_map = None
-        self.occupancy_grid_subscription = self.create_subscription(
-            OccupancyGrid, 'occupancy_grid_topic', self.occupancy_grid_callback, 10)
         self.run_rrt_2D()
 
     def run_rrt_2D(self):
         """
         Generates the RRT
         """
+        if self.map_sub_mode:
+            while self.map_size is None:
+                self.get_logger().info('Waiting for map data...')
+                rclpy.spin_once(self)
         start_node = TreeNode(self.start_position, None)
         node_list = [start_node]
         completed = False
 
         while len(node_list) < self.node_limit:
             random_position_x = np.random.randint(
-                -self.map_size[0], self.map_size[0])
+                -(self.map_size[0] * self.step_size)/2, (self.map_size[0] * self.step_size)/2)
             random_position_y = np.random.randint(
-                -self.map_size[1], self.map_size[1])
+                -(self.map_size[1] * self.step_size)/2, (self.map_size[1] * self.step_size)/2)
             random_position = np.array([random_position_x, random_position_y])
             min_distance = np.inf
             min_node = None
@@ -98,28 +117,33 @@ class RRT2DNode(Node):
                 new_node_unit_vec = min_node_vec / min_distance
                 new_node_val = min_node.val + new_node_unit_vec * self.step_size
                 new_node = TreeNode(new_node_val, min_node)
-                collision = False  # Check if new_node collides with any obstacles
-                for obstacle in self.obstacle_list:
-                    if isinstance(obstacle, Circle):
-                        obstacle_vec = new_node.val - \
-                            np.array([obstacle.x, obstacle.y])
-                        obstacle_distance = np.linalg.norm(obstacle_vec)
-                        if obstacle_distance < obstacle.radius:
-                            collision = True
-                            break
-                    elif isinstance(obstacle, Rectangle):
-                        if (obstacle.x - obstacle.width/2 < new_node.val[0] < obstacle.x + obstacle.width/2) and (obstacle.y - obstacle.height/2 < new_node.val[1] < obstacle.y + obstacle.height/2):
-                            collision = True
-                            break
-                if collision:
-                    continue
+
+                obstacle_collision = False  # Check if new_node collides with any obstacles
+                if self.obstacle_list:
+                    for obstacle in self.obstacle_list:
+                        if isinstance(obstacle, Circle):
+                            obstacle_vec = new_node.val - \
+                                np.array([obstacle.x, obstacle.y])
+                            obstacle_distance = np.linalg.norm(obstacle_vec)
+                            if obstacle_distance < obstacle.radius:
+                                obstacle_collision = True
+                                break
+                        elif isinstance(obstacle, Rectangle):
+                            if (obstacle.x - obstacle.width/2 < new_node.val[0] < obstacle.x + obstacle.width/2) and (obstacle.y - obstacle.height/2 < new_node.val[1] < obstacle.y + obstacle.height/2):
+                                obstacle_collision = True
+                                break
+                    if obstacle_collision:
+                        continue
+
                 wall_collision = False  # Check if new_node is closer than a step size to the wall
-                for i in range(len(new_node.val)):
-                    if np.abs(new_node.val[i]) > self.map_size[i] - self.step_size:
-                        wall_collision = True
-                        break
+                if self.map_sub_mode:
+                    for pixel_center in self.wall_centers:
+                        if np.linalg.norm(new_node.val - pixel_center) < self.step_size:
+                            wall_collision = True
+                            break
                 if wall_collision:
                     continue
+
                 min_node.add_child(new_node)
                 node_list.append(new_node)
 
@@ -215,6 +239,13 @@ class RRT2DNode(Node):
                 marker = self.create_marker(Marker.CUBE, self.obstacle_list.index(
                     obstacle) + len(node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.width, obstacle.height, 0.1], [obstacle.x, obstacle.y, 0.0])
                 marker_array.markers.append(marker)
+        # Create markers for the start and goal positions
+        marker = self.create_marker(Marker.SPHERE, 0, [
+            1.0, 0.0, 0.0, 1.0], [0.1, 0.1, 0.1], [self.start_position[0], self.start_position[1], 0.0])
+        marker_array.markers.append(marker)
+        marker = self.create_marker(Marker.SPHERE, 1, [
+            0.0, 0.0, 1.0, 1.0], [0.1, 0.1, 0.1], [self.goal_position[0], self.goal_position[1], 0.0])
+        marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
     def set_start_goal(self, start, goal):
@@ -277,10 +308,25 @@ class RRT2DNode(Node):
         node_list : list
             The list of nodes in the RRT
         """
-        plt.xlim(-self.map_size[0], self.map_size[0])
-        plt.ylim(-self.map_size[1], self.map_size[1])
+        plt.xlim(-(self.map_size[0] * self.step_size)/2,
+                 (self.map_size[0] * self.step_size)/2)
+        plt.ylim(-(self.map_size[1] * self.step_size)/2,
+                 (self.map_size[1] * self.step_size)/2)
         plt.scatter(self.start_position[0], self.start_position[1], c='r')
         plt.scatter(self.goal_position[0], self.goal_position[1], c='b')
+        if self.map_sub_mode:
+            plt.scatter(self.wall_centers[:, 0],
+                        self.wall_centers[:, 1], c='k', s=1)
+        if self.obstacle_list:
+            for obstacle in self.obstacle_list:
+                if isinstance(obstacle, Circle):
+                    circle = plt.Circle(
+                        (obstacle.x, obstacle.y), obstacle.radius, color='k')
+                    plt.gcf().gca().add_artist(circle)
+                elif isinstance(obstacle, Rectangle):
+                    rectangle = plt.Rectangle((obstacle.x - obstacle.width/2, obstacle.y - obstacle.height/2),
+                                              obstacle.width, obstacle.height, color='k')
+                    plt.gcf().gca().add_artist(rectangle)
         if self.animate:
             plt.ion()
         for node in node_list:

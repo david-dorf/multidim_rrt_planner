@@ -1,6 +1,10 @@
 <launch>
+  <!-- <arg name="map" default="$(find-pkg-share ros2rrt)/maps/map1.pgm"/> -->
+  <arg name="map_sub_mode" default="True"/>
   <node name="rviz2" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share ros2rrt)/config/rrtconfig.rviz"/>
   <node pkg="ros2rrt" exec="map_frame_pub"/>
-  <node pkg="ros2rrt" exec="rrt2D"/>
+  <node pkg="ros2rrt" exec="rrt2D">
+    <param name="map_sub_mode" value="$(var map_sub_mode)"/>
+  </node>
   <node pkg="ros2rrt" exec="occupancy_pub"/>
 </launch>
