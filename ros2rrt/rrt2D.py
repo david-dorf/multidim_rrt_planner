@@ -60,16 +60,16 @@ class RRT2DNode(Node):
             self.get_parameter('goal_position').value)
         self.map_sub_mode = self.get_parameter('map_sub_mode').value
         if self.map_sub_mode:
-            self.subscribed_map = None
-            self.wall_centers = None
-            self.map_size = None
+            self.map_data = None
             self.occupancy_grid_subscription = self.create_subscription(
                 OccupancyGrid, 'occupancy_grid_topic', self.occupancy_grid_callback, 10)
         else:
             self.map_size = np.array([10, 10])
+            self.map_resolution = 1.0
         self.node_limit = 1000
         self.goal_tolerance = 0.5
         self.step_size = 0.1
+        self.wall_confidence = 50
         self.animate = True
         self.obstacle_1 = Circle(1.0, 1.0, 1.0)
         self.obstacle_2 = Rectangle(-1.0, -1.0, 1.0, 1.0, 0.0)
@@ -81,7 +81,7 @@ class RRT2DNode(Node):
         Generates the RRT
         """
         if self.map_sub_mode:
-            while self.map_size is None:
+            while self.map_data is None:
                 self.get_logger().info('Waiting for map data...')
                 rclpy.spin_once(self)
         start_node = TreeNode(self.start_position, None)
@@ -164,16 +164,17 @@ class RRT2DNode(Node):
         """
         self.map_data = msg.data
         self.map_size = np.array([msg.info.width, msg.info.height])
+        self.map_resolution = msg.info.resolution
+        self.map_origin = np.array([msg.info.origin.position.x,
+                                    msg.info.origin.position.y])
         self.map_matrix = np.array(self.map_data).reshape(
             (msg.info.height, msg.info.width))
         self.pixel_centers = np.array([np.array([i, j]) for i in range(
             msg.info.width) for j in range(msg.info.height)])
-        self.pixel_centers = self.pixel_centers * msg.info.resolution + \
-            np.array([msg.info.origin.position.x,
-                      msg.info.origin.position.y])
+        self.pixel_centers = self.pixel_centers * self.map_resolution + self.map_origin
         self.pixel_centers = self.pixel_centers.reshape(
-            (msg.info.height, msg.info.width, 2))
-        self.wall_indices = np.where(self.map_matrix == 100)
+            self.map_size[0], self.map_size[1], 2)
+        self.wall_indices = np.where(self.map_matrix >= self.wall_confidence)
         self.wall_centers = self.pixel_centers[self.wall_indices]
 
     def create_marker(self, marker_type: int, marker_id: int, color: list, scale: list, position: list) -> Marker:
@@ -308,10 +309,10 @@ class RRT2DNode(Node):
         node_list : list
             The list of nodes in the RRT
         """
-        plt.xlim(-(self.map_size[0] * self.step_size)/2,
-                 (self.map_size[0] * self.step_size)/2)
-        plt.ylim(-(self.map_size[1] * self.step_size)/2,
-                 (self.map_size[1] * self.step_size)/2)
+        plt.xlim(-(self.map_size[0] * self.map_resolution)/2,
+                 (self.map_size[0] * self.map_resolution)/2)
+        plt.ylim(-(self.map_size[1] * self.map_resolution)/2,
+                 (self.map_size[1] * self.map_resolution)/2)
         plt.scatter(self.start_position[0], self.start_position[1], c='r')
         plt.scatter(self.goal_position[0], self.goal_position[1], c='b')
         if self.map_sub_mode:
