@@ -66,9 +66,9 @@ class RRT2DNode(Node):
         else:
             self.map_size = np.array([10, 10])
             self.map_resolution = 1.0
-        self.node_limit = 1000
-        self.goal_tolerance = 0.5
-        self.step_size = 0.1
+        self.node_limit = 5000
+        self.goal_tolerance = 0.2
+        self.step_size = 0.05
         self.wall_confidence = 50
         self.animate = True
         self.obstacle_1 = Circle(1.0, 1.0, 1.0)
@@ -89,9 +89,9 @@ class RRT2DNode(Node):
         completed = False
 
         while len(node_list) < self.node_limit:
-            random_position_x = np.random.randint(
+            random_position_x = np.random.uniform(
                 -(self.map_size[0] * self.step_size)/2, (self.map_size[0] * self.step_size)/2)
-            random_position_y = np.random.randint(
+            random_position_y = np.random.uniform(
                 -(self.map_size[1] * self.step_size)/2, (self.map_size[1] * self.step_size)/2)
             random_position = np.array([random_position_x, random_position_y])
             min_distance = np.inf
