@@ -53,7 +53,8 @@ class RRT2DNode(Node):
             parameters=[
                 ('start_position', [0., 0.]),
                 ('goal_position', [1., -1.]),
-                ('map_sub_mode', False)
+                ('map_sub_mode', False),
+                ('obstacle_sub_mode', False),
             ]
         )
         self.start_position = np.array(
@@ -84,10 +85,12 @@ class RRT2DNode(Node):
         """
         Generates the RRT
         """
+        self.get_logger().info('Generating RRT...')
         if self.map_sub_mode:
             while self.map_data is None:
                 self.get_logger().info('Waiting for map data...')
                 rclpy.spin_once(self)
+            self.get_logger().info('Map data received')
         completed = False
         while len(self.node_list) < self.node_limit:
             random_position_x = np.random.uniform(
@@ -146,7 +149,9 @@ class RRT2DNode(Node):
                 min_node.add_child(new_node)
                 self.node_list.append(new_node)
                 self.publish_markers()  # Publish markers while RRT is running
-        if not completed:
+        if completed:
+            self.get_logger().info('Path found')
+        else:
             self.get_logger().info('Path not found')
             return
 
