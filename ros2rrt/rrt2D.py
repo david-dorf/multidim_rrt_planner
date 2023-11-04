@@ -51,17 +51,28 @@ class RRT2DNode(Node):
         self.declare_parameters(
             namespace='',
             parameters=[
-                ('start_position', [0., 0.]),
-                ('goal_position', [1., -1.]),
-                ('map_sub_mode', False),
-                ('obstacle_sub_mode', False),
+                ('start_x', 0.0),
+                ('start_y', 0.0),
+                ('goal_x', 1.0),
+                ('goal_y', -1.0),
+                ('map_sub_mode', True),
+                ('obstacle_sub_mode', True),
+                ('step_size', 0.05),
+                ('node_limit', 5000),
+                ('goal_tolerance', 0.5),
+                ('wall_confidence', 50)
             ]
         )
         self.start_position = np.array(
-            self.get_parameter('start_position').value)
+            [self.get_parameter('start_x').value, self.get_parameter('start_y').value])
         self.goal_position = np.array(
-            self.get_parameter('goal_position').value)
+            [self.get_parameter('goal_x').value, self.get_parameter('goal_y').value])
         self.map_sub_mode = self.get_parameter('map_sub_mode').value
+        self.obstacle_sub_mode = self.get_parameter('obstacle_sub_mode').value
+        self.step_size = self.get_parameter('step_size').value
+        self.node_limit = self.get_parameter('node_limit').value
+        self.goal_tolerance = self.get_parameter('goal_tolerance').value
+        self.wall_confidence = self.get_parameter('wall_confidence').value
         if self.map_sub_mode:
             self.map_data = None
             self.occupancy_grid_subscription = self.create_subscription(
@@ -69,10 +80,6 @@ class RRT2DNode(Node):
         else:
             self.map_size = np.array([10, 10])
             self.map_resolution = 1.0
-        self.node_limit = 5000
-        self.goal_tolerance = 0.2
-        self.step_size = 0.05
-        self.wall_confidence = 50
         self.obstacle_1 = Circle(1.0, 1.0, 1.0)
         self.obstacle_2 = Rectangle(-1.0, -1.0, 1.0, 1.0, 0.0)
         self.obstacle_list = [self.obstacle_1, self.obstacle_2]
@@ -140,7 +147,7 @@ class RRT2DNode(Node):
                 wall_collision = False  # Check if new_node is closer than a step size to the wall
                 if self.map_sub_mode:
                     for pixel_center in self.wall_centers:
-                        if np.linalg.norm(new_node.val - pixel_center) < self.step_size:
+                        if np.linalg.norm(new_node.val - pixel_center) < self.map_resolution or np.linalg.norm(new_node.val - pixel_center) < self.step_size:
                             wall_collision = True
                             break
                 if wall_collision:
@@ -175,7 +182,7 @@ class RRT2DNode(Node):
         self.map_origin = np.array([msg.info.origin.position.x,
                                     msg.info.origin.position.y])
         self.map_matrix = np.array(self.map_data).reshape(
-            (msg.info.height, msg.info.width))
+            (msg.info.height, msg.info.width)).T
         self.pixel_centers = np.array([np.array([i, j]) for i in range(
             msg.info.width) for j in range(msg.info.height)])
         self.pixel_centers = self.pixel_centers * self.map_resolution + self.map_origin
