@@ -4,31 +4,37 @@ from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path, OccupancyGrid
 import numpy as np
-import matplotlib.pyplot as plt
 from .submodules.TreeNode import TreeNode
 from .submodules.Obstacles import Circle, Rectangle
 
 
 class RRT2DNode(Node):
     """
-    Generates a 2D RRT path and publishes it as a Path message and as a set of markers
+    Generates a 2D RRT path and publishes it as a Path message and as a set of markers.
 
     Attributes
     ----------
     start_position : np.array
-        The starting position of the RRT
+        The starting position of the RRT.
     goal_position : np.array
-        The goal position of the RRT
+        The goal position of the RRT.
     map_size : np.array
-        The size of the map
+        The size of the map.
     node_limit : int
-        The maximum number of nodes to generate
+        The maximum number of nodes to generate.
     goal_tolerance : float
-        The maximum distance between the goal and the final node
+        The maximum distance between the goal and the final node.
     step_size : float
-        The step size for each node
-    animate : bool
-        Whether or not to animate the RRT
+        The step size for each node.
+    wall_confidence : int
+        The minimum confidence for a wall pixel.
+    timer : Timer
+        The timer for publishing the final markers and path.
+    start_node : TreeNode
+        The starting node of the RRT.
+    node_list : list
+        The list of nodes in the RRT.
+
 
     Methods
     -------
@@ -37,11 +43,7 @@ class RRT2DNode(Node):
     create_marker()
         Creates a marker for visualization
     publish_markers()
-        Publishes the markers
-    publish_path()
-        Publishes the path
-    plot_rrt_2D()
-        Plots the RRT
+        Publishes markers for obstacles, start, goal, and nodes
     """
 
     def __init__(self):
@@ -66,15 +68,15 @@ class RRT2DNode(Node):
         else:
             self.map_size = np.array([10, 10])
             self.map_resolution = 1.0
-        self.node_list = []
         self.node_limit = 5000
         self.goal_tolerance = 0.2
         self.step_size = 0.05
         self.wall_confidence = 50
-        self.animate = True
         self.obstacle_1 = Circle(1.0, 1.0, 1.0)
         self.obstacle_2 = Rectangle(-1.0, -1.0, 1.0, 1.0, 0.0)
         self.obstacle_list = [self.obstacle_1, self.obstacle_2]
+        self.start_node = TreeNode(self.start_position, None)
+        self.node_list = [self.start_node]
         self.timer = self.create_timer(1.0, self.timer_callback)
         self.run_rrt_2D()
 
@@ -86,8 +88,6 @@ class RRT2DNode(Node):
             while self.map_data is None:
                 self.get_logger().info('Waiting for map data...')
                 rclpy.spin_once(self)
-        start_node = TreeNode(self.start_position, None)
-        self.node_list = [start_node]
         completed = False
         while len(self.node_list) < self.node_limit:
             random_position_x = np.random.uniform(
@@ -145,14 +145,14 @@ class RRT2DNode(Node):
 
                 min_node.add_child(new_node)
                 self.node_list.append(new_node)
-                self.publish_markers()
+                self.publish_markers()  # Publish markers while RRT is running
         if not completed:
             self.get_logger().info('Path not found')
             return
 
     def timer_callback(self):
         """
-        Timer callback for publishing the markers and path
+        Timer callback for publishing the final markers and path until the node is destroyed.
         """
         self.publish_markers()
         self.publish_path()
