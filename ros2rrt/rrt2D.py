@@ -212,6 +212,16 @@ class RRT2DNode(Node):
         marker_publisher.publish(marker_array)
 
     def set_start_goal(self, start, goal):
+        """
+        Sets the start and goal positions.
+
+        Parameters
+        ----------
+        start : tuple
+            The start position
+        goal : tuple
+            The goal position
+        """
         start_x, start_y = start
         goal_x, goal_y = goal
         if not (-self.map_size[0] < start_x < self.map_size[0]):
