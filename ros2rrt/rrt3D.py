@@ -9,6 +9,70 @@ from .submodules.Marker import Sphere, Box, create_marker
 
 
 class RRT3DNode(Node):
+    """
+    A ROS2 node for generating a 2D RRT.
+
+    Parameters
+    ----------
+    start_x : float
+        The x coordinate of the start position.
+    start_y : float
+        The y coordinate of the start position.
+    goal_x : float
+        The x coordinate of the goal position.
+    goal_y : float
+        The y coordinate of the goal position.
+    goal_z : float
+        The z coordinate of the goal position.
+    map_bounds_x : float
+        The x boundary of the map.
+    map_bounds_y : float
+        The y boundary of the map.
+    map_bounds_z : float
+        The z boundary of the map.
+    obstacle_sub_mode : bool
+        Whether to subscribe to obstacle data or not.
+    step_size : float
+        The step size for the RRT.
+    node_limit : int
+        The maximum number of nodes to generate.
+    goal_tolerance : float
+        The tolerance for the goal position.
+    wall_confidence : int
+        The confidence threshold for the wall.
+
+    Attributes
+    ----------
+    start_position : numpy.ndarray
+        The start position.
+    goal_position : numpy.ndarray
+        The goal position.
+    map_size : numpy.ndarray
+        The boundaries containing the RRT.
+    obstacle_list : list
+        The list of obstacles.
+    start_node : TreeNode
+        The start node.
+    node_list : list
+        The list of nodes.
+    timer : Timer
+        The timer for publishing the final markers and path.
+
+    Methods
+    -------
+    run_rrt_3D()
+        Generates the RRT.
+    timer_callback()
+        Timer callback for publishing the final markers and path until the node is destroyed.
+    obstacle_callback(msg)
+        Callback for the obstacle subscriber.
+    publish_markers()
+        Publishes a marker for each node in the RRT, as well as markers for the start and goal positions.
+    set_start_goal(start, goal)
+        Sets the start and goal positions.
+    publish_path()
+        Publishes the path.
+    """
 
     def __init__(self):
         super().__init__('rrt_3d_node')

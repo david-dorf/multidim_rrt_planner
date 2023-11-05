@@ -9,6 +9,78 @@ from .submodules.Marker import Circle, Rectangle, create_marker
 
 
 class RRT2DNode(Node):
+    """
+    A ROS2 node for generating a 2D RRT.
+
+    Parameters
+    ----------
+    start_x : float
+        The x coordinate of the start position.
+    start_y : float
+        The y coordinate of the start position.
+    goal_x : float
+        The x coordinate of the goal position.
+    goal_y : float
+        The y coordinate of the goal position.
+    map_sub_mode : bool
+        Whether or not to subscribe to the occupancy grid.
+    obstacle_sub_mode : bool
+        Whether or not to subscribe to the obstacle markers.
+    step_size : float
+        The step size for each node.
+    node_limit : int
+        The maximum number of nodes to generate.
+    goal_tolerance : float
+        The tolerance for reaching the goal.
+    wall_confidence : int
+        The confidence threshold for the occupancy grid.
+
+    Attributes
+    ----------
+    start_position : numpy.ndarray
+        The start position.
+    goal_position : numpy.ndarray
+        The goal position.
+    map_data : list
+        The map data.
+    map_size : numpy.ndarray
+        The size of the map.
+    map_resolution : float
+        The resolution of the map.
+    map_origin : numpy.ndarray
+        The origin of the map.
+    map_matrix : numpy.ndarray
+        A matrix representation of the map.
+    pixel_centers : numpy.ndarray
+        The centers of each pixel in the map.
+    wall_indices : tuple
+        The indices of the wall pixels in the map matrix.
+    wall_centers : numpy.ndarray
+        The center coordinates of the wall pixels.
+    start_node : TreeNode
+        The start node.
+    node_list : list
+        The list of nodes.
+    timer : Timer
+        The timer for publishing markers and the path.
+
+    Methods
+    -------
+    run_rrt_2D()
+        Generates the RRT.
+    timer_callback()
+        Timer callback for publishing the final markers and path until the node is destroyed.
+    occupancy_grid_callback(msg)
+        Callback for the OccupancyGrid subscriber.
+    obstacle_callback(msg)
+        Callback for the obstacle subscriber.
+    publish_markers()
+        Publishes a marker for each node in the RRT, as well as markers for the start and goal positions.
+    set_start_goal(start, goal)
+        Sets the start and goal positions.
+    publish_path()
+        Publishes the path.
+    """
 
     def __init__(self):
         super().__init__('rrt_2d_node')
@@ -34,7 +106,7 @@ class RRT2DNode(Node):
             self.occupancy_grid_subscription = self.create_subscription(
                 OccupancyGrid, 'occupancy_grid', self.occupancy_grid_callback, 10)
         else:
-            self.map_size = np.array([10, 10])
+            self.map_size = np.array([100, 100])
             self.map_resolution = 1.0
         if self.obstacle_sub_mode:
             self.obstacle_list = []
