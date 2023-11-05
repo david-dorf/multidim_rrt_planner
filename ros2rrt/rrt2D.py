@@ -48,31 +48,23 @@ class RRT2DNode(Node):
 
     def __init__(self):
         super().__init__('rrt_2d_node')
-        self.declare_parameters(
-            namespace='',
-            parameters=[
-                ('start_x', 0.0),
-                ('start_y', 0.0),
-                ('goal_x', 1.0),
-                ('goal_y', -1.0),
-                ('map_sub_mode', True),
-                ('obstacle_sub_mode', True),
-                ('step_size', 0.05),
-                ('node_limit', 5000),
-                ('goal_tolerance', 0.5),
-                ('wall_confidence', 50)
-            ]
-        )
-        self.start_position = np.array(
-            [self.get_parameter('start_x').value, self.get_parameter('start_y').value])
-        self.goal_position = np.array(
-            [self.get_parameter('goal_x').value, self.get_parameter('goal_y').value])
-        self.map_sub_mode = self.get_parameter('map_sub_mode').value
-        self.obstacle_sub_mode = self.get_parameter('obstacle_sub_mode').value
-        self.step_size = self.get_parameter('step_size').value
-        self.node_limit = self.get_parameter('node_limit').value
-        self.goal_tolerance = self.get_parameter('goal_tolerance').value
-        self.wall_confidence = self.get_parameter('wall_confidence').value
+        parameters = [
+            ('start_x', 0.0),
+            ('start_y', 0.0),
+            ('goal_x', 1.0),
+            ('goal_y', -1.0),
+            ('map_sub_mode', True),
+            ('obstacle_sub_mode', True),
+            ('step_size', 0.05),
+            ('node_limit', 5000),
+            ('goal_tolerance', 0.5),
+            ('wall_confidence', 50)
+        ]
+        self.declare_parameters(namespace='', parameters=parameters)
+        for param, _ in parameters:
+            setattr(self, param, self.get_parameter(param).value)
+        self.start_position = np.array([self.start_x, self.start_y])
+        self.goal_position = np.array([self.goal_x, self.goal_y])
         if self.map_sub_mode:
             self.map_data = None
             self.occupancy_grid_subscription = self.create_subscription(
