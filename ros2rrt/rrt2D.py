@@ -9,42 +9,6 @@ from .submodules.Marker import Circle, Rectangle, create_marker
 
 
 class RRT2DNode(Node):
-    """
-    Generates a 2D RRT path and publishes it as a Path message and as a set of markers.
-
-    Attributes
-    ----------
-    start_position : np.array
-        The starting position of the RRT.
-    goal_position : np.array
-        The goal position of the RRT.
-    map_size : np.array
-        The size of the map.
-    node_limit : int
-        The maximum number of nodes to generate.
-    goal_tolerance : float
-        The maximum distance between the goal and the final node.
-    step_size : float
-        The step size for each node.
-    wall_confidence : int
-        The minimum confidence for a wall pixel.
-    timer : Timer
-        The timer for publishing the final markers and path.
-    start_node : TreeNode
-        The starting node of the RRT.
-    node_list : list
-        The list of nodes in the RRT.
-
-
-    Methods
-    -------
-    run_rrt_2D()
-        Generates the RRT
-    create_marker()
-        Creates a marker for visualization
-    publish_markers()
-        Publishes markers for obstacles, start, goal, and nodes
-    """
 
     def __init__(self):
         super().__init__('rrt_2d_node')
@@ -202,8 +166,8 @@ class RRT2DNode(Node):
                 self.obstacle_list.append(Circle(
                     marker.pose.position.x, marker.pose.position.y, marker.scale.x/2))
             elif marker.type == Marker.CUBE:
-                self.obstacle_list.append(Rectangle(marker.pose.position.x, marker.pose.position.y,
-                                                    marker.scale.x, marker.scale.y, marker.pose.orientation.z))
+                self.obstacle_list.append(Rectangle(
+                    marker.pose.position.x, marker.pose.position.y, marker.scale.x, marker.scale.y, marker.pose.orientation.z))
 
     def publish_markers(self):
         """

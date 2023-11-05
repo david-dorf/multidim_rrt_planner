@@ -11,6 +11,8 @@
   <arg name="wall_confidence" default="50"/>
   <node name="rviz2" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share ros2rrt)/config/rrtconfig.rviz"/>
   <node pkg="ros2rrt" exec="map_frame_pub"/>
+  <node pkg="ros2rrt" exec="occupancy_pub"/>
+  <node pkg="ros2rrt" exec="obstacle_pub"/>
   <node pkg="ros2rrt" exec="rrt2D">
     <param name="start_x" value="$(var start_x)"/>
     <param name="start_y" value="$(var start_y)"/>
@@ -23,6 +25,4 @@
     <param name="goal_tolerance" value="$(var goal_tolerance)"/>
     <param name="wall_confidence" value="$(var wall_confidence)"/>
   </node>
-  <node pkg="ros2rrt" exec="occupancy_pub"/>
-  <node pkg="ros2rrt" exec="obstacle_pub"/>
 </launch>
