@@ -6,7 +6,7 @@ from nav_msgs.msg import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from .submodules.TreeNode import TreeNode
-from .submodules.Obstacles import Sphere, Box
+from .submodules.Marker import Sphere, Box
 
 
 class RRT3DNode(Node):

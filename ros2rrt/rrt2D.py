@@ -5,7 +5,7 @@ from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path, OccupancyGrid
 import numpy as np
 from .submodules.TreeNode import TreeNode
-from .submodules.Obstacles import Circle, Rectangle
+from .submodules.Marker import Circle, Rectangle, create_marker
 
 
 class RRT2DNode(Node):
@@ -183,41 +183,6 @@ class RRT2DNode(Node):
         self.wall_indices = np.where(self.map_matrix >= self.wall_confidence)
         self.wall_centers = self.pixel_centers[self.wall_indices]
 
-    def create_marker(self, marker_type: int, marker_id: int, color: list, scale: list, position: list) -> Marker:
-        """
-        Creates a marker for visualization.
-
-        Parameters
-        ----------
-        marker_type : int
-            The type of marker
-        marker_id : int
-            The ID of the marker
-        color : list
-            The color of the marker
-        scale : list
-            The scale of the marker
-        position : list
-            The position of the marker
-        """
-        marker = Marker()
-        marker.header.frame_id = "map"
-        marker.ns = "rrt_markers"
-        marker.id = marker_id
-        marker.type = marker_type
-        marker.action = Marker.ADD
-        marker.scale.x = scale[0]
-        marker.scale.y = scale[1]
-        marker.scale.z = scale[2]
-        marker.color.r = color[0]
-        marker.color.g = color[1]
-        marker.color.b = color[2]
-        marker.color.a = color[3]
-        marker.pose.position.x = position[0]
-        marker.pose.position.y = position[1]
-        marker.pose.position.z = position[2]
-        return marker
-
     def publish_markers(self):
         """
         Publishes the markers
@@ -226,22 +191,22 @@ class RRT2DNode(Node):
             MarkerArray, 'rrt_markers', 10)
         marker_array = MarkerArray()
         for node in self.node_list:
-            marker = self.create_marker(Marker.SPHERE, self.node_list.index(node) + 2, [
+            marker = create_marker(Marker.SPHERE, self.node_list.index(node) + 2, [
                 0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [node.val[0], node.val[1], 0.0])
             marker_array.markers.append(marker)
         for obstacle in self.obstacle_list:
             if isinstance(obstacle, Circle):
-                marker = self.create_marker(Marker.CYLINDER, self.obstacle_list.index(
+                marker = create_marker(Marker.CYLINDER, self.obstacle_list.index(
                     obstacle) + len(self.node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.radius * 2, obstacle.radius * 2, 0.1], [obstacle.x, obstacle.y, 0.0])
                 marker_array.markers.append(marker)
             elif isinstance(obstacle, Rectangle):
-                marker = self.create_marker(Marker.CUBE, self.obstacle_list.index(
+                marker = create_marker(Marker.CUBE, self.obstacle_list.index(
                     obstacle) + len(self.node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.width, obstacle.height, 0.1], [obstacle.x, obstacle.y, 0.0])
                 marker_array.markers.append(marker)
-        marker = self.create_marker(Marker.SPHERE, 0, [
+        marker = create_marker(Marker.SPHERE, 0, [
             1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1], 0.0])
         marker_array.markers.append(marker)
-        marker = self.create_marker(Marker.SPHERE, 1, [
+        marker = create_marker(Marker.SPHERE, 1, [
             0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1], 0.0])
         marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
