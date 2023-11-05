@@ -4,12 +4,12 @@ from visualization_msgs.msg import Marker, MarkerArray
 from .submodules.Marker import Circle, Rectangle, create_marker
 
 
-class ObstaclePublisher(Node):
+class ObstaclePublisher2D(Node):
 
     def __init__(self):
-        super().__init__('obstacle_publisher')
+        super().__init__('obstacle_publisher_2D')
         self.publisher = self.create_publisher(
-            MarkerArray, 'obstacle_markers', 10)
+            MarkerArray, 'obstacle_markers_2D', 10)
         self.timer = self.create_timer(
             1.0, self.publish_obstacle)
         self.obstacle_1 = Circle(1.0, 1.0, 1.0)
@@ -32,6 +32,6 @@ class ObstaclePublisher(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    obstacle_publisher = ObstaclePublisher()
+    obstacle_publisher = ObstaclePublisher2D()
     rclpy.spin(obstacle_publisher)
     rclpy.shutdown()
