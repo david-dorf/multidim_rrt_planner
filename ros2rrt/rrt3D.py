@@ -39,7 +39,7 @@ class RRT3DNode(Node):
         if self.obstacle_sub_mode:
             self.obstacle_list = []
             self.obstacle_subscription = self.create_subscription(
-                MarkerArray, 'obstacle_markers', self.obstacle_callback, 10)
+                MarkerArray, 'obstacle_markers_3D', self.obstacle_callback, 10)
         self.start_node = TreeNode(self.start_position, None)
         self.node_list = [self.start_node]
         self.timer = self.create_timer(1.0, self.timer_callback)
@@ -129,7 +129,7 @@ class RRT3DNode(Node):
         """
         self.obstacle_list = []
         for marker in msg.markers:
-            if marker.type == Marker.CYLINDER:
+            if marker.type == Marker.SPHERE:
                 self.obstacle_list.append(Sphere(
                     marker.pose.position.x, marker.pose.position.y, marker.pose.position.z, marker.scale.x/2))
             elif marker.type == Marker.CUBE:

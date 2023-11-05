@@ -21,7 +21,7 @@ class RRT2DNode(Node):
             ('obstacle_sub_mode', True),
             ('step_size', 0.05),
             ('node_limit', 5000),
-            ('goal_tolerance', 0.5),
+            ('goal_tolerance', 0.2),
             ('wall_confidence', 50)
         ]
         self.declare_parameters(namespace='', parameters=parameters)
