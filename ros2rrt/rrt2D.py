@@ -68,13 +68,14 @@ class RRT2DNode(Node):
         if self.map_sub_mode:
             self.map_data = None
             self.occupancy_grid_subscription = self.create_subscription(
-                OccupancyGrid, 'occupancy_grid_topic', self.occupancy_grid_callback, 10)
+                OccupancyGrid, 'occupancy_grid', self.occupancy_grid_callback, 10)
         else:
             self.map_size = np.array([10, 10])
             self.map_resolution = 1.0
-        self.obstacle_1 = Circle(1.0, 1.0, 1.0)
-        self.obstacle_2 = Rectangle(-1.0, -1.0, 1.0, 1.0, 0.0)
-        self.obstacle_list = [self.obstacle_1, self.obstacle_2]
+        if self.obstacle_sub_mode:
+            self.obstacle_list = []
+            self.obstacle_subscription = self.create_subscription(
+                MarkerArray, 'obstacle_markers', self.obstacle_callback, 10)
         self.start_node = TreeNode(self.start_position, None)
         self.node_list = [self.start_node]
         self.timer = self.create_timer(1.0, self.timer_callback)
@@ -90,6 +91,11 @@ class RRT2DNode(Node):
                 self.get_logger().info('Waiting for map data...')
                 rclpy.spin_once(self)
             self.get_logger().info('Map data received')
+        if self.obstacle_sub_mode:
+            while not self.obstacle_list:
+                self.get_logger().info('Waiting for obstacle data...')
+                rclpy.spin_once(self)
+            self.get_logger().info('Obstacle data received')
         completed = False
         while len(self.node_list) < self.node_limit:
             random_position_x = np.random.uniform(
@@ -183,9 +189,25 @@ class RRT2DNode(Node):
         self.wall_indices = np.where(self.map_matrix >= self.wall_confidence)
         self.wall_centers = self.pixel_centers[self.wall_indices]
 
+    def obstacle_callback(self, msg):
+        """
+        Callback for the obstacle subscriber.
+
+        Parameters:
+        - msg (MarkerArray): The received MarkerArray message.
+        """
+        self.obstacle_list = []
+        for marker in msg.markers:
+            if marker.type == Marker.CYLINDER:
+                self.obstacle_list.append(Circle(
+                    marker.pose.position.x, marker.pose.position.y, marker.scale.x/2))
+            elif marker.type == Marker.CUBE:
+                self.obstacle_list.append(Rectangle(marker.pose.position.x, marker.pose.position.y,
+                                                    marker.scale.x, marker.scale.y, marker.pose.orientation.z))
+
     def publish_markers(self):
         """
-        Publishes the markers
+        Publishes a marker for each node in the RRT, as well as markers for the start and goal positions.
         """
         marker_publisher = self.create_publisher(
             MarkerArray, 'rrt_markers', 10)
@@ -194,15 +216,6 @@ class RRT2DNode(Node):
             marker = create_marker(Marker.SPHERE, self.node_list.index(node) + 2, [
                 0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [node.val[0], node.val[1], 0.0])
             marker_array.markers.append(marker)
-        for obstacle in self.obstacle_list:
-            if isinstance(obstacle, Circle):
-                marker = create_marker(Marker.CYLINDER, self.obstacle_list.index(
-                    obstacle) + len(self.node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.radius * 2, obstacle.radius * 2, 0.1], [obstacle.x, obstacle.y, 0.0])
-                marker_array.markers.append(marker)
-            elif isinstance(obstacle, Rectangle):
-                marker = create_marker(Marker.CUBE, self.obstacle_list.index(
-                    obstacle) + len(self.node_list) + 2, [1.0, 0.0, 0.0, 1.0], [obstacle.width, obstacle.height, 0.1], [obstacle.x, obstacle.y, 0.0])
-                marker_array.markers.append(marker)
         marker = create_marker(Marker.SPHERE, 0, [
             1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1], 0.0])
         marker_array.markers.append(marker)

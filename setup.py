@@ -28,6 +28,7 @@ setup(
             'rrt3D = ros2rrt.rrt3D:main',
             'map_frame_pub = ros2rrt.map_frame_pub:main',
             'occupancy_pub = ros2rrt.occupancy_pub:main',
+            'obstacle_pub = ros2rrt.obstacle_pub:main',
         ],
     },
 )

@@ -9,7 +9,7 @@ class OccupancyGridPublisher(Node):
     def __init__(self):
         super().__init__('occupancy_grid_publisher')
         self.publisher = self.create_publisher(
-            OccupancyGrid, 'occupancy_grid_topic', 10)
+            OccupancyGrid, 'occupancy_grid', 10)
         self.timer = self.create_timer(
             1.0, self.publish_occupancy_grid)  # Publish at 1 Hz
 
