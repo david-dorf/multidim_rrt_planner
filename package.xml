@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ros2rrt</name>
+  <name>rrt_planner</name>
   <version>0.0.0</version>
   <description>RRT exploration in 2D and 3D</description>
   <maintainer email="daviddorf2023@u.northwestern.edu">david</maintainer>

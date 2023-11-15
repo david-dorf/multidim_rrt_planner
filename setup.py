@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 import os
 from glob import glob
 
-package_name = 'ros2rrt'
+package_name = 'rrt_planner'
 
 setup(
     name=package_name,
@@ -24,12 +24,12 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'rrt2D = ros2rrt.rrt2D:main',
-            'rrt3D = ros2rrt.rrt3D:main',
-            'map_frame_pub = ros2rrt.map_frame_pub:main',
-            'occupancy_pub = ros2rrt.occupancy_pub:main',
-            'obstacle_pub_2D = ros2rrt.obstacle_pub_2D:main',
-            'obstacle_pub_3D = ros2rrt.obstacle_pub_3D:main',
+            'rrt2D = rrt_planner.rrt2D:main',
+            'rrt3D = rrt_planner.rrt3D:main',
+            'map_frame_pub = rrt_planner.map_frame_pub:main',
+            'occupancy_pub = rrt_planner.occupancy_pub:main',
+            'obstacle_pub_2D = rrt_planner.obstacle_pub_2D:main',
+            'obstacle_pub_3D = rrt_planner.obstacle_pub_3D:main',
         ],
     },
 )
