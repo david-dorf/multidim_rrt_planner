@@ -1,4 +1,4 @@
-# RRT_2D_3D
+# Multi-dimensional RRT Planner
 
 
 
