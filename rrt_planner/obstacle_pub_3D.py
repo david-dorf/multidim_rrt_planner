@@ -21,11 +21,15 @@ class ObstaclePublisher2D(Node):
         for obstacle in self.obstacle_list:
             if isinstance(obstacle, Sphere):
                 marker = create_marker(Marker.SPHERE, self.obstacle_list.index(
-                    obstacle), [1.0, 0.0, 0.0, 1.0], [obstacle.radius * 2, obstacle.radius * 2, obstacle.radius * 2], [obstacle.x, obstacle.y, obstacle.z])
+                    obstacle), [1.0, 0.0, 0.0, 1.0],
+                    [obstacle.radius * 2, obstacle.radius * 2, obstacle.radius * 2],
+                    [obstacle.x, obstacle.y, obstacle.z])
                 marker_array.markers.append(marker)
             elif isinstance(obstacle, Box):
                 marker = create_marker(Marker.CUBE, self.obstacle_list.index(
-                    obstacle), [1.0, 0.0, 0.0, 1.0], [obstacle.width, obstacle.height, obstacle.depth], [obstacle.x, obstacle.y, obstacle.z])
+                    obstacle), [1.0, 0.0, 0.0, 1.0],
+                    [obstacle.width, obstacle.height, obstacle.depth],
+                    [obstacle.x, obstacle.y, obstacle.z])
                 marker_array.markers.append(marker)
         self.publisher.publish(marker_array)
 

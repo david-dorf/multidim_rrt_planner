@@ -67,7 +67,7 @@ class RRT3DNode(Node):
     obstacle_callback(msg)
         Callback for the obstacle subscriber.
     publish_markers()
-        Publishes a marker for each node in the RRT, as well as markers for the start and goal positions.
+        Publishes a marker for each node, start, and goal in the RRT.
     set_start_goal(start, goal)
         Sets the start and goal positions.
     publish_path()
@@ -163,7 +163,12 @@ class RRT3DNode(Node):
                                 obstacle_collision = True
                                 break
                         elif isinstance(obstacle, Box):
-                            if obstacle.x - obstacle.width/2 < new_node.val[0] < obstacle.x + obstacle.width/2 and obstacle.y - obstacle.height/2 < new_node.val[1] < obstacle.y + obstacle.height/2 and obstacle.z - obstacle.depth/2 < new_node.val[2] < obstacle.z + obstacle.depth/2:
+                            if (obstacle.x - obstacle.width/2 < new_node.val[0]
+                                < obstacle.x + obstacle.width/2) and \
+                                (obstacle.y - obstacle.height/2 < new_node.val[1]
+                                 < obstacle.y + obstacle.height/2) and \
+                                (obstacle.z - obstacle.depth/2 < new_node.val[2]
+                                 < obstacle.z + obstacle.depth/2):
                                 obstacle_collision = True
                                 break
                     if obstacle_collision:
@@ -195,14 +200,16 @@ class RRT3DNode(Node):
         for marker in msg.markers:
             if marker.type == Marker.SPHERE:
                 self.obstacle_list.append(Sphere(
-                    marker.pose.position.x, marker.pose.position.y, marker.pose.position.z, marker.scale.x/2))
+                    marker.pose.position.x, marker.pose.position.y, marker.pose.position.z,
+                    marker.scale.x/2))
             elif marker.type == Marker.CUBE:
                 self.obstacle_list.append(Box(
-                    marker.pose.position.x, marker.pose.position.y, marker.pose.position.z, marker.scale.x, marker.scale.y, marker.scale.z, marker.pose.orientation.x))
+                    marker.pose.position.x, marker.pose.position.y, marker.pose.position.z,
+                    marker.scale.x, marker.scale.y, marker.scale.z, marker.pose.orientation.x))
 
     def publish_markers(self):
         """
-        Publishes a marker for each node in the RRT, as well as markers for the start and goal positions.
+        Publishes a marker for each node in the RRT and the start and goal.
         """
         marker_publisher = self.create_publisher(
             MarkerArray, 'rrt_markers', 10)
@@ -212,10 +219,12 @@ class RRT3DNode(Node):
                 0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [node.val[0], node.val[1], node.val[2]])
             marker_array.markers.append(marker)
         marker = create_marker(Marker.SPHERE, 0, [
-            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1], self.start_position[2]])
+            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1],
+                                                   self.start_position[2]])
         marker_array.markers.append(marker)
         marker = create_marker(Marker.SPHERE, 1, [
-            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1], self.goal_position[2]])
+            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1],
+                                                   self.goal_position[2]])
         marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
@@ -252,7 +261,9 @@ class RRT3DNode(Node):
                 if obstacle_distance < obstacle.radius:
                     raise ValueError("Start is inside an obstacle.")
             elif isinstance(obstacle, Box):
-                if (obstacle.x-obstacle.width/2 < start_x < obstacle.x+obstacle.width/2 and obstacle.y-obstacle.height/2 < start_y < obstacle.y+obstacle.height/2 and obstacle.z-obstacle.depth/2 < start_z < obstacle.z+obstacle.depth/2):
+                if (obstacle.x-obstacle.width/2 < start_x < obstacle.x+obstacle.width/2 and
+                        obstacle.y-obstacle.height/2 < start_y < obstacle.y+obstacle.height/2 and
+                        obstacle.z-obstacle.depth/2 < start_z < obstacle.z+obstacle.depth/2):
                     raise ValueError("Start is inside an obstacle.")
 
     def publish_path(self):

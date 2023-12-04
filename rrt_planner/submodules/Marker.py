@@ -36,7 +36,8 @@ class Box:
         self.angle = angle
 
 
-def create_marker(marker_type: int, marker_id: int, color: list, scale: list, position: list) -> Marker:
+def create_marker(marker_type: int, marker_id: int, color: list,
+                  scale: list, position: list) -> Marker:
     """
     Creates a marker for visualization.
 

@@ -75,7 +75,7 @@ class RRT2DNode(Node):
     obstacle_callback(msg)
         Callback for the obstacle subscriber.
     publish_markers()
-        Publishes a marker for each node in the RRT, as well as markers for the start and goal positions.
+        Publishes a marker for each node, start, and goal in the RRT.
     set_start_goal(start, goal)
         Sets the start and goal positions.
     publish_path()
@@ -173,7 +173,10 @@ class RRT2DNode(Node):
                                 obstacle_collision = True
                                 break
                         elif isinstance(obstacle, Rectangle):
-                            if (obstacle.x - obstacle.width/2 < new_node.val[0] < obstacle.x + obstacle.width/2) and (obstacle.y - obstacle.height/2 < new_node.val[1] < obstacle.y + obstacle.height/2):
+                            if (obstacle.x - obstacle.width/2 < new_node.val[0]
+                                < obstacle.x + obstacle.width/2) and \
+                                (obstacle.y - obstacle.height/2 < new_node.val[1]
+                                 < obstacle.y + obstacle.height/2):
                                 obstacle_collision = True
                                 break
                     if obstacle_collision:
@@ -181,7 +184,8 @@ class RRT2DNode(Node):
                 wall_collision = False  # Check if new_node is closer than a step size to the wall
                 if self.map_sub_mode:
                     for pixel_center in self.wall_centers:
-                        if np.linalg.norm(new_node.val - pixel_center) < self.map_resolution or np.linalg.norm(new_node.val - pixel_center) < self.step_size:
+                        if np.linalg.norm(new_node.val - pixel_center) < self.map_resolution or \
+                                np.linalg.norm(new_node.val - pixel_center) < self.step_size:
                             wall_collision = True
                             break
                 if wall_collision:
@@ -239,11 +243,12 @@ class RRT2DNode(Node):
                     marker.pose.position.x, marker.pose.position.y, marker.scale.x/2))
             elif marker.type == Marker.CUBE:
                 self.obstacle_list.append(Rectangle(
-                    marker.pose.position.x, marker.pose.position.y, marker.scale.x, marker.scale.y, marker.pose.orientation.z))
+                    marker.pose.position.x, marker.pose.position.y, marker.scale.x, marker.scale.y,
+                    marker.pose.orientation.z))
 
     def publish_markers(self):
         """
-        Publishes a marker for each node in the RRT, as well as markers for the start and goal positions.
+        Publishes a marker for each node in the RRT and the start and goal.
         """
         marker_publisher = self.create_publisher(
             MarkerArray, 'rrt_markers', 10)
@@ -253,10 +258,12 @@ class RRT2DNode(Node):
                 0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [node.val[0], node.val[1], 0.0])
             marker_array.markers.append(marker)
         marker = create_marker(Marker.SPHERE, 0, [
-            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1], 0.0])
+            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2],
+            [self.start_position[0], self.start_position[1], 0.0])
         marker_array.markers.append(marker)
         marker = create_marker(Marker.SPHERE, 1, [
-            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1], 0.0])
+            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2],
+            [self.goal_position[0], self.goal_position[1], 0.0])
         marker_array.markers.append(marker)
         marker_publisher.publish(marker_array)
 
@@ -289,7 +296,9 @@ class RRT2DNode(Node):
                 if obstacle_distance < obstacle.radius:
                     raise ValueError("Start is inside an obstacle.")
             elif isinstance(obstacle, Rectangle):
-                if (obstacle.x - obstacle.width/2 < start_x < obstacle.x + obstacle.width/2) and (obstacle.y - obstacle.height/2 < start_y < obstacle.y + obstacle.height/2):
+                if (obstacle.x - obstacle.width/2 < start_x < obstacle.x + obstacle.width/2) and \
+                        (obstacle.y - obstacle.height/2 < start_y <
+                         obstacle.y + obstacle.height/2):
                     raise ValueError("Start is inside an obstacle.")
         for pixel_center in self.wall_centers:
             if np.linalg.norm(np.array([start_x, start_y]) - pixel_center) < self.step_size:
