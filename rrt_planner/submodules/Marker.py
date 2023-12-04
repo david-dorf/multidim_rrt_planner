@@ -39,10 +39,10 @@ class Box:
 def create_marker(marker_type: int, marker_id: int, color: list,
                   scale: list, position: list) -> Marker:
     """
-    Creates a marker for visualization.
+    Create a marker for visualization.
 
-    Parameters
-    ----------
+    Arguments:
+    ---------
     marker_type : int
         The type of marker
     marker_id : int
@@ -53,6 +53,7 @@ def create_marker(marker_type: int, marker_id: int, color: list,
         The scale of the marker
     position : list
         The position of the marker
+
     """
     marker = Marker()
     marker.header.frame_id = "map"

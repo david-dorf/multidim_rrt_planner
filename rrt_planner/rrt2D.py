@@ -80,6 +80,7 @@ class RRT2DNode(Node):
         Sets the start and goal positions.
     publish_path()
         Publishes the path.
+
     """
 
     def __init__(self):
@@ -118,9 +119,7 @@ class RRT2DNode(Node):
         self.run_rrt_2D()
 
     def run_rrt_2D(self):
-        """
-        Generates the RRT
-        """
+        """Generate the RRT in 2D."""
         self.get_logger().info('Generating RRT...')
         if self.map_sub_mode:
             while self.map_data is None:
@@ -201,18 +200,19 @@ class RRT2DNode(Node):
             return
 
     def timer_callback(self):
-        """
-        Timer callback for publishing the final markers and path until the node is destroyed.
-        """
+        """Timer callback for publishing the final markers and path until the node is destroyed."""
         self.publish_markers()
         self.publish_path()
 
     def occupancy_grid_callback(self, msg):
         """
-        Callback for the OccupancyGrid subscriber.
+        Run callback for the OccupancyGrid subscriber.
 
-        Parameters:
-        - msg (OccupancyGrid): The received OccupancyGrid message.
+        Arguments:
+        ---------
+        msg : OccupancyGrid
+            The received OccupancyGrid message.
+
         """
         self.map_data = msg.data
         self.map_size = np.array([msg.info.width, msg.info.height])
@@ -231,10 +231,13 @@ class RRT2DNode(Node):
 
     def obstacle_callback(self, msg):
         """
-        Callback for the obstacle subscriber.
+        Run callback for the obstacle subscriber.
 
-        Parameters:
-        - msg (MarkerArray): The received MarkerArray message.
+        Arguments:
+        ---------
+        msg : MarkerArray
+            The received MarkerArray message.
+
         """
         self.obstacle_list = []
         for marker in msg.markers:
@@ -247,9 +250,7 @@ class RRT2DNode(Node):
                     marker.pose.orientation.z))
 
     def publish_markers(self):
-        """
-        Publishes a marker for each node in the RRT and the start and goal.
-        """
+        """Publish a marker for each node in the RRT and the start and goal."""
         marker_publisher = self.create_publisher(
             MarkerArray, 'rrt_markers', 10)
         marker_array = MarkerArray()
@@ -269,14 +270,15 @@ class RRT2DNode(Node):
 
     def set_start_goal(self, start, goal):
         """
-        Sets the start and goal positions.
+        Set the start and goal positions.
 
-        Parameters
-        ----------
+        Arguments:
+        ---------
         start : tuple
             The start position
         goal : tuple
             The goal position
+
         """
         start_x, start_y = start
         goal_x, goal_y = goal
@@ -307,9 +309,7 @@ class RRT2DNode(Node):
                 raise ValueError("Goal is too close to a wall.")
 
     def publish_path(self):
-        """
-        Publishes the path
-        """
+        """Publish the path in 2D."""
         path_publisher = self.create_publisher(Path, 'rrt_path', 10)
         path = Path()
         path.header.frame_id = "map"

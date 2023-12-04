@@ -72,6 +72,7 @@ class RRT3DNode(Node):
         Sets the start and goal positions.
     publish_path()
         Publishes the path.
+
     """
 
     def __init__(self):
@@ -110,9 +111,7 @@ class RRT3DNode(Node):
         self.run_rrt_3D()
 
     def run_rrt_3D(self):
-        """
-        Generates the RRT
-        """
+        """Generate the RRT in 3D."""
         self.get_logger().info('Generating RRT...')
         if self.obstacle_sub_mode:
             while not self.obstacle_list:
@@ -183,18 +182,19 @@ class RRT3DNode(Node):
             return
 
     def timer_callback(self):
-        """
-        Timer callback for publishing the final markers and path until the node is destroyed.
-        """
+        """Timer callback for publishing the final markers and path until the node is destroyed."""
         self.publish_markers()
         self.publish_path()
 
     def obstacle_callback(self, msg):
         """
-        Callback for the obstacle subscriber.
+        Run callback for the obstacle subscriber.
 
-        Parameters:
-        - msg (MarkerArray): The received MarkerArray message.
+        Arguments:
+        ---------
+        msg : MarkerArray
+            The obstacle data.
+
         """
         self.obstacle_list = []
         for marker in msg.markers:
@@ -208,9 +208,7 @@ class RRT3DNode(Node):
                     marker.scale.x, marker.scale.y, marker.scale.z, marker.pose.orientation.x))
 
     def publish_markers(self):
-        """
-        Publishes a marker for each node in the RRT and the start and goal.
-        """
+        """Publish a marker for each node in the RRT and the start and goal."""
         marker_publisher = self.create_publisher(
             MarkerArray, 'rrt_markers', 10)
         marker_array = MarkerArray()
@@ -230,14 +228,15 @@ class RRT3DNode(Node):
 
     def set_start_goal(self, start, goal):
         """
-        Sets the start and goal positions.
+        Set the start and goal positions.
 
-        Parameters
-        ----------
+        Arguments:
+        ---------
         start : tuple
             The start position
         goal : tuple
             The goal position
+
         """
         start_x, start_y, start_z = start
         goal_x, goal_y, goal_z = goal
@@ -267,9 +266,7 @@ class RRT3DNode(Node):
                     raise ValueError("Start is inside an obstacle.")
 
     def publish_path(self):
-        """
-        Publishes the path
-        """
+        """Publish the path as a Path message in 3D."""
         path_publisher = self.create_publisher(Path, 'rrt_path', 10)
         path = Path()
         path.header.frame_id = "map"

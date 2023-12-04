@@ -7,7 +7,8 @@ from .submodules.Marker import Circle, Rectangle, create_marker
 
 
 class ObstaclePublisher2D(Node):
-    """Publishes obstacles in 2D.
+    """
+    Publishes obstacles in 2D.
 
     Methods
     -------
@@ -26,6 +27,7 @@ class ObstaclePublisher2D(Node):
         Second example obstacle
     obstacle_list : list
         List of obstacles
+
     """
 
     def __init__(self):

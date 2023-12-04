@@ -1,12 +1,37 @@
+"""Publishes obstacles in 2D."""
+
 import rclpy
 from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
 from .submodules.Marker import Sphere, Box, create_marker
 
 
-class ObstaclePublisher2D(Node):
+class ObstaclePublisher3D(Node):
+    """
+    Publish obstacles in 3D.
+
+    Methods
+    -------
+    publish_obstacle()
+        Publishes obstacles in 3D.
+
+    Attributes
+    ----------
+    publisher : rclpy.publisher.Publisher
+        Publisher for obstacle markers
+    timer : rclpy.timer.Timer
+        Timer for publishing obstacles
+    obstacle_1 : Circle
+        First example obstacle
+    obstacle_2 : Rectangle
+        Second example obstacle
+    obstacle_list : list
+        List of obstacles
+
+    """
 
     def __init__(self):
+        """Initialize the node."""
         super().__init__('obstacle_publisher_3D')
         self.publisher = self.create_publisher(
             MarkerArray, 'obstacle_markers_3D', 10)
@@ -17,6 +42,7 @@ class ObstaclePublisher2D(Node):
         self.obstacle_list = [self.obstacle_1, self.obstacle_2]
 
     def publish_obstacle(self):
+        """Publish obstacles in 3D."""
         marker_array = MarkerArray()
         for obstacle in self.obstacle_list:
             if isinstance(obstacle, Sphere):
@@ -35,7 +61,8 @@ class ObstaclePublisher2D(Node):
 
 
 def main(args=None):
+    """Run the main function."""
     rclpy.init(args=args)
-    obstacle_publisher = ObstaclePublisher2D()
+    obstacle_publisher = ObstaclePublisher3D()
     rclpy.spin(obstacle_publisher)
     rclpy.shutdown()
