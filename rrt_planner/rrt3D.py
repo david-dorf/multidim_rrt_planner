@@ -99,6 +99,9 @@ class RRT3DNode(Node):
         self.start_position = np.array(
             [self.start_x, self.start_y, self.start_z])
         self.goal_position = np.array([self.goal_x, self.goal_y, self.goal_z])
+        self.marker_publisher = self.create_publisher(
+            MarkerArray, 'rrt_markers', 10)
+        self.path_publisher = self.create_publisher(Path, 'rrt_path', 10)
         self.map_size = np.array(
             [self.map_bounds_x, self.map_bounds_y, self.map_bounds_z])
         if self.obstacle_sub_mode:
@@ -209,8 +212,6 @@ class RRT3DNode(Node):
 
     def publish_markers(self):
         """Publish a marker for each node in the RRT and the start and goal."""
-        marker_publisher = self.create_publisher(
-            MarkerArray, 'rrt_markers', 10)
         marker_array = MarkerArray()
         for node in self.node_list:
             marker = create_marker(Marker.SPHERE, self.node_list.index(node) + 2, [
@@ -224,7 +225,7 @@ class RRT3DNode(Node):
             0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1],
                                                    self.goal_position[2]])
         marker_array.markers.append(marker)
-        marker_publisher.publish(marker_array)
+        self.marker_publisher.publish(marker_array)
 
     def set_start_goal(self, start, goal):
         """
@@ -267,7 +268,6 @@ class RRT3DNode(Node):
 
     def publish_path(self):
         """Publish the path as a Path message in 3D."""
-        path_publisher = self.create_publisher(Path, 'rrt_path', 10)
         path = Path()
         path.header.frame_id = "map"
         current_node = self.node_list[-1]
@@ -280,7 +280,7 @@ class RRT3DNode(Node):
             pose.pose.position.z = current_node.val[2]
             path.poses.append(pose)
             current_node = current_node.parent
-        path_publisher.publish(path)
+        self.path_publisher.publish(path)
 
 
 def main(args=None):
