@@ -8,7 +8,7 @@ https://github.com/daviddorf2023/ros2rrt/assets/113081373/6f8e5829-7414-44c8-915
 Author: David Dorf
 
 ## Description
-3D and 2D implementation of Rapid Exploring Random Tree algorithms for ROS 2. The main ROS 2 nodes are rrt2D and rrt3D, which can take user inputs and publish the nodes of the RRT and the path to the goal. The ROS 2 nodes are currently in development. The nodes can subscribe to topics for map data, marker obstacles, and can be launched with rrt2Dlaunch.xml and rrt3Dlaunch.xml, respectively.
+3D and 2D implementation of Rapid Exploring Random Tree algorithms for ROS 2. The main ROS 2 nodes are rrt2D and rrt3D, which can take user inputs and publish the nodes of the RRT and the path to the goal. The ROS 2 nodes are currently in development. The nodes can subscribe to topics for map data, marker obstacles, and can be launched with rrt2Dlaunch.xml and rrt3Dlaunch.xml, respectively. C++ version: https://github.com/daviddorf2023/multidim_rrt_cpp.
 
 ## Installation
 ### Dependencies
