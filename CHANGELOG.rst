@@ -2,8 +2,8 @@
 Changelog for package rrt_planner
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.1 (2024-01-11)
+------------------
 * Update README.md with C++ version link
 * Changed the Python readme instead of the C++ one.
 * Add README.md
