@@ -10,10 +10,10 @@
   <arg name="node_limit" default="5000"/>
   <arg name="goal_tolerance" default="0.5"/>
   <arg name="wall_confidence" default="50"/>
-  <node name="rviz2" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share ros2rrt)/config/rrt3Dconfig.rviz"/>
-  <node pkg="ros2rrt" exec="map_frame_pub"/>
-  <node pkg="ros2rrt" exec="obstacle_pub_3D"/>
-  <node pkg="ros2rrt" exec="rrt3D">
+  <node name="rviz2" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share rrt_planner)/config/rrt3Dconfig.rviz"/>
+  <node pkg="rrt_planner" exec="map_frame_pub"/>
+  <node pkg="rrt_planner" exec="obstacle_pub_3D"/>
+  <node pkg="rrt_planner" exec="rrt3D">
     <param name="start_x" value="$(var start_x)"/>
     <param name="start_y" value="$(var start_y)"/>
     <param name="goal_x" value="$(var goal_x)"/>

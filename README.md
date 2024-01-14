@@ -2,7 +2,7 @@
 
 
 
-https://github.com/daviddorf2023/ros2rrt/assets/113081373/6f8e5829-7414-44c8-915c-48ec843377d8
+https://github.com/daviddorf2023/rrt_planner/assets/113081373/6f8e5829-7414-44c8-915c-48ec843377d8
 
 ## Authors and Contributors
 Author: David Dorf
