@@ -121,7 +121,6 @@ class RRT3DNode(Node):
                 self.get_logger().info('Waiting for obstacle data...')
                 rclpy.spin_once(self)
             self.get_logger().info('Obstacle data received')
-        completed = False
         while len(self.node_list) < self.node_limit:
             random_position_x = np.random.uniform(
                 -(self.map_size[0] * self.step_size)/2, (self.map_size[0] * self.step_size)/2)
@@ -140,16 +139,14 @@ class RRT3DNode(Node):
                 if goal_distance < self.goal_tolerance:
                     node.add_child(goal_node)
                     self.node_list.append(goal_node)
-                    completed = True
-                    break
+                    self._logger.info('Path found')
+                    return
                 new_node_vec = random_position - node.val  # Find node closest to random point
                 distance = np.linalg.norm(new_node_vec)
                 if distance < min_distance:
                     min_node_vec = new_node_vec
                     min_node = node
                 min_distance = np.min([distance, min_distance])
-            if completed:
-                break
             if min_distance != 0:
                 new_node_unit_vec = min_node_vec / min_distance
                 new_node_val = min_node.val + new_node_unit_vec * self.step_size
@@ -178,11 +175,8 @@ class RRT3DNode(Node):
                 min_node.add_child(new_node)
                 self.node_list.append(new_node)
                 self.publish_markers()  # Publish markers while RRT is running
-        if completed:
-            self.get_logger().info('Path found')
-        else:
-            self.get_logger().info('Path not found')
-            return
+        self.get_logger().info('Path not found')
+        return
 
     def timer_callback(self):
         """Timer callback for publishing the final markers and path until the node is destroyed."""
