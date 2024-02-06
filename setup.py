@@ -2,11 +2,11 @@ from setuptools import find_packages, setup
 import os
 from glob import glob
 
-package_name = 'rrt_planner'
+package_name = 'multidim_rrt_planner'
 
 setup(
     name=package_name,
-    version='0.0.1',
+    version='0.0.7',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -24,12 +24,12 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'rrt2D = rrt_planner.rrt2D:main',
-            'rrt3D = rrt_planner.rrt3D:main',
-            'map_frame_pub = rrt_planner.map_frame_pub:main',
-            'occupancy_pub = rrt_planner.occupancy_pub:main',
-            'obstacle_pub_2D = rrt_planner.obstacle_pub_2D:main',
-            'obstacle_pub_3D = rrt_planner.obstacle_pub_3D:main',
+            'rrt2D = multidim_rrt_planner.rrt2D:main',
+            'rrt3D = multidim_rrt_planner.rrt3D:main',
+            'map_frame_pub = multidim_rrt_planner.map_frame_pub:main',
+            'occupancy_pub = multidim_rrt_planner.occupancy_pub:main',
+            'obstacle_pub_2D = multidim_rrt_planner.obstacle_pub_2D:main',
+            'obstacle_pub_3D = multidim_rrt_planner.obstacle_pub_3D:main',
         ],
     },
 )

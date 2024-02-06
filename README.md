@@ -1,11 +1,5 @@
 # Multi-dimensional RRT Planner
 
-
-
-https://github.com/daviddorf2023/multidim_rrt_planner/assets/113081373/6a7df4ad-39bc-4db0-abd1-cc2bd199bdaa
-
-
-
 ## Authors and Contributors
 Author: David Dorf
 
