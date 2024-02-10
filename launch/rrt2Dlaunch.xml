@@ -5,13 +5,13 @@
   <arg name="goal_y" default="-1.0"/>
   <arg name="map_bounds_x" default="100"/>
   <arg name="map_bounds_y" default="100"/>
+  <arg name="example_publishers" default="False"/>
   <arg name="map_sub_mode" default="$(eval '\'$(var example_publishers)\' == \'True\'')"/>
   <arg name="obstacle_sub_mode" default="$(eval '\'$(var example_publishers)\' == \'True\'')"/>
   <arg name="step_size" default="0.05"/>
   <arg name="node_limit" default="5000"/>
   <arg name="goal_tolerance" default="0.2"/>
   <arg name="wall_confidence" default="50"/>
-  <arg name="example_publishers" default="False"/>
   <node name="rviz2" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share multidim_rrt_planner)/config/rrt2Dconfig.rviz"/>
   <node pkg="multidim_rrt_planner" exec="map_frame_pub" if="$(eval '\'$(var example_publishers)\' == \'True\'')"/>
   <node pkg="multidim_rrt_planner" exec="occupancy_pub" if="$(eval '\'$(var example_publishers)\' == \'True\'')"/>
