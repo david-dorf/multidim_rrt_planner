@@ -3,8 +3,10 @@
   <arg name="start_y" default="0.0"/>
   <arg name="goal_x" default="1.0"/>
   <arg name="goal_y" default="-1.0"/>
-  <arg name="map_sub_mode" default="True"/>
-  <arg name="obstacle_sub_mode" default="True"/>
+  <arg name="map_bounds_x" default="100"/>
+  <arg name="map_bounds_y" default="100"/>
+  <arg name="map_sub_mode" default="$(eval '\'$(var example_publishers)\' == \'True\'')"/>
+  <arg name="obstacle_sub_mode" default="$(eval '\'$(var example_publishers)\' == \'True\'')"/>
   <arg name="step_size" default="0.05"/>
   <arg name="node_limit" default="5000"/>
   <arg name="goal_tolerance" default="0.2"/>

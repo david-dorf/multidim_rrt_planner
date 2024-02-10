@@ -72,21 +72,3 @@ def create_marker(marker_type: int, marker_id: int, color: list,
     marker.pose.position.y = position[1]
     marker.pose.position.z = position[2]
     return marker
-
-
-def delete_marker(marker_id: int) -> Marker:
-    """
-    Delete a marker for visualization.
-
-    Arguments:
-    ---------
-    marker_id : int
-        The ID of the marker
-
-    """
-    marker = Marker()
-    marker.header.frame_id = "map"
-    marker.ns = "rrt_markers"
-    marker.id = marker_id
-    marker.action = Marker.DELETE
-    return marker

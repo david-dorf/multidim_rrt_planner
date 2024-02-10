@@ -3,6 +3,7 @@ from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
+from std_srvs.srv import Empty
 import numpy as np
 from .TreeNode import TreeNode
 from .Marker import Sphere, Box, create_marker
@@ -25,11 +26,11 @@ class RRT3DNode(Node):
     goal_z : float
         The z coordinate of the goal position.
     map_bounds_x : float
-        The x boundary of the map.
+        The x boundary of the map that contains the RRT.
     map_bounds_y : float
         The y boundary of the map.
     map_bounds_z : float
-        The z boundary of the map.
+        The z boundary of the map that contains the RRT.
     obstacle_sub_mode : bool
         Whether to subscribe to obstacle data or not.
     step_size : float
@@ -38,8 +39,6 @@ class RRT3DNode(Node):
         The maximum number of nodes to generate.
     goal_tolerance : float
         The tolerance for the goal position.
-    wall_confidence : int
-        The confidence threshold for the wall.
 
     Attributes
     ----------
@@ -55,15 +54,14 @@ class RRT3DNode(Node):
         The start node.
     node_list : list
         The list of nodes.
-    timer : Timer
-        The timer for publishing the final markers and path.
+    marker_publisher : Publisher
+        The ROS publisher for the markers.
+    path_publisher : Publisher
 
     Methods
     -------
     run_rrt_3D()
         Generates the RRT.
-    timer_callback()
-        Timer callback for publishing the final markers and path until the node is destroyed.
     obstacle_callback(msg)
         Callback for the obstacle subscriber.
     publish_markers()
@@ -87,11 +85,10 @@ class RRT3DNode(Node):
             ('map_bounds_x', 100.0),
             ('map_bounds_y', 100.0),
             ('map_bounds_z', 100.0),
-            ('obstacle_sub_mode', True),
+            ('obstacle_sub_mode', False),
             ('step_size', 0.05),
             ('node_limit', 5000),
             ('goal_tolerance', 0.5),
-            ('wall_confidence', 50)
         ]
         self.declare_parameters(namespace='', parameters=parameters)
         for param, _ in parameters:
@@ -108,10 +105,35 @@ class RRT3DNode(Node):
             self.obstacle_list = []
             self.obstacle_subscription = self.create_subscription(
                 MarkerArray, 'obstacle_markers_3D', self.obstacle_callback, 10)
+        self.rrt_srv = self.create_service(Empty, 'run_rrt', self.rrt_callback)
         self.start_node = TreeNode(self.start_position, None)
         self.node_list = [self.start_node]
-        self.timer = self.create_timer(1.0, self.timer_callback)
+        self.marker_array = MarkerArray()
+        self.path = Path()
+
+    def rrt_callback(self, request, response):
+        """Service callback for running the RRT."""
+
+        # Clear the markers and path
+        self.marker_array = MarkerArray()
+        clear_marker = Marker()
+        clear_marker.action = Marker.DELETEALL
+        self.marker_array.markers.append(clear_marker)
+        self.marker_publisher.publish(self.marker_array)
+        self.path = Path()
+        self.path.header.frame_id = "map"
+        self.path_publisher.publish(self.path)
+
+        # Publish the start and goal markers
+        self.marker_array.markers.append(create_marker(Marker.SPHERE, 0, [
+            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1], self.start_position[2]]))
+        self.marker_array.markers.append(create_marker(Marker.SPHERE, 1, [
+            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1], self.goal_position[2]]))
+
+        # Run the RRT
+        self.node_list = [self.start_node]
         self.run_rrt_3D()
+        return response
 
     def run_rrt_3D(self):
         """Generate the RRT in 3D."""
@@ -139,7 +161,8 @@ class RRT3DNode(Node):
                 if goal_distance < self.goal_tolerance:
                     node.add_child(goal_node)
                     self.node_list.append(goal_node)
-                    self._logger.info('Path found')
+                    self.get_logger().info('Path found')
+                    self.publish_path()
                     return
                 new_node_vec = random_position - node.val  # Find node closest to random point
                 distance = np.linalg.norm(new_node_vec)
@@ -152,36 +175,37 @@ class RRT3DNode(Node):
                 new_node_val = min_node.val + new_node_unit_vec * self.step_size
                 new_node = TreeNode(new_node_val, min_node)
                 obstacle_collision = False  # Check if new_node collides with any obstacles
-                if self.obstacle_list:
-                    for obstacle in self.obstacle_list:
-                        if isinstance(obstacle, Sphere):
-                            obstacle_vec = new_node.val - \
-                                np.array([obstacle.x, obstacle.y, obstacle.z])
-                            obstacle_distance = np.linalg.norm(obstacle_vec)
-                            if obstacle_distance < obstacle.radius:
-                                obstacle_collision = True
-                                break
-                        elif isinstance(obstacle, Box):
-                            if (obstacle.x - obstacle.width/2 < new_node.val[0]
-                                < obstacle.x + obstacle.width/2) and \
-                                (obstacle.y - obstacle.height/2 < new_node.val[1]
-                                 < obstacle.y + obstacle.height/2) and \
-                                (obstacle.z - obstacle.depth/2 < new_node.val[2]
-                                 < obstacle.z + obstacle.depth/2):
-                                obstacle_collision = True
-                                break
-                    if obstacle_collision:
-                        continue
+                if self.obstacle_sub_mode:
+                    if self.obstacle_list:
+                        for obstacle in self.obstacle_list:
+                            if isinstance(obstacle, Sphere):
+                                obstacle_vec = new_node.val - \
+                                    np.array(
+                                        [obstacle.x, obstacle.y, obstacle.z])
+                                obstacle_distance = np.linalg.norm(
+                                    obstacle_vec)
+                                if obstacle_distance < obstacle.radius:
+                                    obstacle_collision = True
+                                    break
+                            elif isinstance(obstacle, Box):
+                                if (obstacle.x - obstacle.width/2 < new_node.val[0]
+                                    < obstacle.x + obstacle.width/2) and \
+                                    (obstacle.y - obstacle.height/2 < new_node.val[1]
+                                     < obstacle.y + obstacle.height/2) and \
+                                    (obstacle.z - obstacle.depth/2 < new_node.val[2]
+                                     < obstacle.z + obstacle.depth/2):
+                                    obstacle_collision = True
+                                    break
+                        if obstacle_collision:
+                            continue
                 min_node.add_child(new_node)
                 self.node_list.append(new_node)
-                self.publish_markers()  # Publish markers while RRT is running
+                marker = create_marker(Marker.SPHERE, self.node_list.index(new_node) + 2, [
+                    0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [new_node.val[0], new_node.val[1], new_node.val[2]])
+                self.marker_array.markers.append(marker)
+                self.marker_publisher.publish(self.marker_array)
         self.get_logger().info('Path not found')
         return
-
-    def timer_callback(self):
-        """Timer callback for publishing the final markers and path until the node is destroyed."""
-        self.publish_markers()
-        self.publish_path()
 
     def obstacle_callback(self, msg):
         """
@@ -190,7 +214,7 @@ class RRT3DNode(Node):
         Arguments:
         ---------
         msg : MarkerArray
-            The obstacle data.
+            The obstacle marker data.
 
         """
         self.obstacle_list = []
@@ -203,23 +227,6 @@ class RRT3DNode(Node):
                 self.obstacle_list.append(Box(
                     marker.pose.position.x, marker.pose.position.y, marker.pose.position.z,
                     marker.scale.x, marker.scale.y, marker.scale.z, marker.pose.orientation.x))
-
-    def publish_markers(self):
-        """Publish a marker for each node in the RRT and the start and goal."""
-        marker_array = MarkerArray()
-        for node in self.node_list:
-            marker = create_marker(Marker.SPHERE, self.node_list.index(node) + 2, [
-                0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [node.val[0], node.val[1], node.val[2]])
-            marker_array.markers.append(marker)
-        marker = create_marker(Marker.SPHERE, 0, [
-            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1],
-                                                   self.start_position[2]])
-        marker_array.markers.append(marker)
-        marker = create_marker(Marker.SPHERE, 1, [
-            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1],
-                                                   self.goal_position[2]])
-        marker_array.markers.append(marker)
-        self.marker_publisher.publish(marker_array)
 
     def set_start_goal(self, start, goal):
         """
@@ -262,8 +269,8 @@ class RRT3DNode(Node):
 
     def publish_path(self):
         """Publish the path as a Path message in 3D."""
-        path = Path()
-        path.header.frame_id = "map"
+        self.path = Path()
+        self.path.header.frame_id = "map"
         current_node = self.node_list[-1]
         while current_node.parent:
             pose = PoseStamped()
@@ -272,9 +279,9 @@ class RRT3DNode(Node):
             pose.pose.position.x = current_node.val[0]
             pose.pose.position.y = current_node.val[1]
             pose.pose.position.z = current_node.val[2]
-            path.poses.append(pose)
+            self.path.poses.append(pose)
             current_node = current_node.parent
-        self.path_publisher.publish(path)
+        self.path_publisher.publish(self.path)
 
 
 def main(args=None):

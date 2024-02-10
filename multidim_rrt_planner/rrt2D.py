@@ -6,8 +6,7 @@ from nav_msgs.msg import Path, OccupancyGrid
 from std_srvs.srv import Empty
 import numpy as np
 from .TreeNode import TreeNode
-from .Marker import Circle, Rectangle, create_marker, delete_marker
-import time
+from .Marker import Circle, Rectangle, create_marker
 
 
 class RRT2DNode(Node):
@@ -26,6 +25,10 @@ class RRT2DNode(Node):
         The y coordinate of the goal position.
     map_sub_mode : bool
         Whether or not to subscribe to the occupancy grid.
+    map_bounds_x : int
+        The width of the map that the rrt will be generated in.
+    map_bounds_y : int
+        The height of the map that the rrt will be generated in.
     obstacle_sub_mode : bool
         Whether or not to subscribe to the obstacle markers.
     step_size : float
@@ -63,17 +66,14 @@ class RRT2DNode(Node):
         The start node.
     node_list : list
         The list of nodes.
-    timer : Timer
-        The ROS timer for publishing markers and the path.
     marker_publisher : Publisher
         The ROS publisher for the markers.
+    path_publisher : Publisher
 
     Methods
     -------
     run_rrt_2D()
         Generates the RRT.
-    timer_callback()
-        Timer callback for publishing the final markers and path until the node is destroyed.
     occupancy_grid_callback(msg)
         Callback for the OccupancyGrid subscriber.
     obstacle_callback(msg)
@@ -94,8 +94,10 @@ class RRT2DNode(Node):
             ('start_y', 0.0),
             ('goal_x', 1.0),
             ('goal_y', -1.0),
-            ('map_sub_mode', True),
-            ('obstacle_sub_mode', True),
+            ('map_sub_mode', False),
+            ('map_bounds_x', 100),
+            ('map_bounds_y', 100),
+            ('obstacle_sub_mode', False),
             ('step_size', 0.05),
             ('node_limit', 5000),
             ('goal_tolerance', 0.2),
@@ -114,8 +116,7 @@ class RRT2DNode(Node):
             self.occupancy_grid_subscription = self.create_subscription(
                 OccupancyGrid, 'occupancy_grid', self.occupancy_grid_callback, 10)
         else:
-            self.map_size = np.array([100, 100])
-            self.map_resolution = 1.0
+            self.map_size = np.array([self.map_bounds_x, self.map_bounds_y])
         if self.obstacle_sub_mode:
             self.obstacle_list = []
             self.obstacle_subscription = self.create_subscription(
@@ -191,25 +192,27 @@ class RRT2DNode(Node):
                 new_node_unit_vec = min_node_vec / min_distance
                 new_node_val = min_node.val + new_node_unit_vec * self.step_size
                 new_node = TreeNode(new_node_val, min_node)
-                obstacle_collision = False  # Check if new_node collides with any obstacles
-                if self.obstacle_list:
-                    for obstacle in self.obstacle_list:
-                        if isinstance(obstacle, Circle):
-                            obstacle_vec = new_node.val - \
-                                np.array([obstacle.x, obstacle.y])
-                            obstacle_distance = np.linalg.norm(obstacle_vec)
-                            if obstacle_distance < obstacle.radius:
-                                obstacle_collision = True
-                                break
-                        elif isinstance(obstacle, Rectangle):
-                            if (obstacle.x - obstacle.width/2 < new_node.val[0]
-                                < obstacle.x + obstacle.width/2) and \
-                                (obstacle.y - obstacle.height/2 < new_node.val[1]
-                                 < obstacle.y + obstacle.height/2):
-                                obstacle_collision = True
-                                break
-                    if obstacle_collision:
-                        continue
+                if self.obstacle_sub_mode:
+                    obstacle_collision = False  # Check if new_node collides with any obstacles
+                    if self.obstacle_list:
+                        for obstacle in self.obstacle_list:
+                            if isinstance(obstacle, Circle):
+                                obstacle_vec = new_node.val - \
+                                    np.array([obstacle.x, obstacle.y])
+                                obstacle_distance = np.linalg.norm(
+                                    obstacle_vec)
+                                if obstacle_distance < obstacle.radius:
+                                    obstacle_collision = True
+                                    break
+                            elif isinstance(obstacle, Rectangle):
+                                if (obstacle.x - obstacle.width/2 < new_node.val[0]
+                                    < obstacle.x + obstacle.width/2) and \
+                                    (obstacle.y - obstacle.height/2 < new_node.val[1]
+                                     < obstacle.y + obstacle.height/2):
+                                    obstacle_collision = True
+                                    break
+                        if obstacle_collision:
+                            continue
                 wall_collision = False  # Check if new_node is closer than a step size to the wall
                 if self.map_sub_mode:
                     for pixel_center in self.wall_centers:
@@ -260,7 +263,7 @@ class RRT2DNode(Node):
         Arguments:
         ---------
         msg : MarkerArray
-            The received MarkerArray message.
+            The obstacle marker data.
 
         """
         self.obstacle_list = []

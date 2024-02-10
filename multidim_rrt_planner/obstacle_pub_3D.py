@@ -39,7 +39,9 @@ class ObstaclePublisher3D(Node):
             1.0, self.publish_obstacle)
         self.obstacle_1 = Sphere(1.0, 1.0, 1.0, 1.0)
         self.obstacle_2 = Box(-1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 0.0)
-        self.obstacle_list = [self.obstacle_1, self.obstacle_2]
+        self.obstacle_3 = Sphere(0.6, -0.6, 0.6, 0.3)
+        self.obstacle_list = [self.obstacle_1,
+                              self.obstacle_2, self.obstacle_3]
 
     def publish_obstacle(self):
         """Publish obstacles in 3D."""
