@@ -7,6 +7,7 @@ from std_srvs.srv import Empty
 import numpy as np
 from .TreeNode import TreeNode
 from .Marker import Circle, Rectangle, create_marker, delete_marker
+import time
 
 
 class RRT2DNode(Node):
@@ -122,18 +123,35 @@ class RRT2DNode(Node):
         self.rrt_srv = self.create_service(Empty, 'run_rrt', self.rrt_callback)
         self.start_node = TreeNode(self.start_position, None)
         self.node_list = [self.start_node]
-        self.timer = self.create_timer(1.0, self.timer_callback)
+        self.marker_array = MarkerArray()
+        self.path = Path()
 
     def rrt_callback(self, request, response):
         """Service callback for running the RRT."""
-        self.clear_markers()
+
+        # Clear the markers and path
+        self.marker_array = MarkerArray()
+        clear_marker = Marker()
+        clear_marker.action = Marker.DELETEALL
+        self.marker_array.markers.append(clear_marker)
+        self.marker_publisher.publish(self.marker_array)
+        self.path = Path()
+        self.path.header.frame_id = "map"
+        self.path_publisher.publish(self.path)
+
+        # Publish the start and goal markers
+        self.marker_array.markers.append(create_marker(Marker.SPHERE, 0, [
+            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1], 0.0]))
+        self.marker_array.markers.append(create_marker(Marker.SPHERE, 1, [
+            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1], 0.0]))
+
+        # Run the RRT
         self.node_list = [self.start_node]
         self.run_rrt_2D()
         return response
 
     def run_rrt_2D(self):
         """Generate the RRT in 2D."""
-
         self.get_logger().info('Generating RRT...')
         if self.map_sub_mode:
             while self.map_data is None:
@@ -161,6 +179,7 @@ class RRT2DNode(Node):
                     node.add_child(goal_node)
                     self.node_list.append(goal_node)
                     self.get_logger().info('Path found')
+                    self.publish_path()
                     return
                 new_node_vec = random_position - node.val  # Find node closest to random point
                 distance = np.linalg.norm(new_node_vec)
@@ -202,14 +221,12 @@ class RRT2DNode(Node):
                     continue
                 min_node.add_child(new_node)
                 self.node_list.append(new_node)
-                self.publish_markers()  # Publish markers while RRT is running
+                marker = create_marker(Marker.SPHERE, self.node_list.index(new_node) + 2, [
+                    0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [new_node.val[0], new_node.val[1], 0.0])
+                self.marker_array.markers.append(marker)
+                self.marker_publisher.publish(self.marker_array)
         self.get_logger().info('Path not found')
         return
-
-    def timer_callback(self):
-        """Timer callback for publishing the final markers and path until the node is destroyed."""
-        self.publish_markers()
-        self.publish_path()
 
     def occupancy_grid_callback(self, msg):
         """
@@ -256,34 +273,6 @@ class RRT2DNode(Node):
                     marker.pose.position.x, marker.pose.position.y, marker.scale.x, marker.scale.y,
                     marker.pose.orientation.z))
 
-    def publish_markers(self):
-        """Publish a marker for each node in the RRT and the start and goal."""
-        marker_array = MarkerArray()
-        for node in self.node_list:
-            marker = create_marker(Marker.SPHERE, self.node_list.index(node) + 2, [
-                0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [node.val[0], node.val[1], 0.0])
-            marker_array.markers.append(marker)
-        marker = create_marker(Marker.SPHERE, 0, [
-            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2],
-            [self.start_position[0], self.start_position[1], 0.0])
-        marker_array.markers.append(marker)
-        marker = create_marker(Marker.SPHERE, 1, [
-            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2],
-            [self.goal_position[0], self.goal_position[1], 0.0])
-        marker_array.markers.append(marker)
-        self.marker_publisher.publish(marker_array)
-
-    def clear_markers(self):
-        marker_array = MarkerArray()
-        for node in self.node_list:
-            marker = delete_marker(self.node_list.index(node) + 2)
-            marker_array.markers.append(marker)
-        marker = delete_marker(0)
-        marker_array.markers.append(marker)
-        marker = delete_marker(1)
-        marker_array.markers.append(marker)
-        self.marker_publisher.publish(marker_array)
-
     def set_start_goal(self, start, goal):
         """
         Set the start and goal positions.
@@ -326,8 +315,7 @@ class RRT2DNode(Node):
 
     def publish_path(self):
         """Publish the path in 2D."""
-        path = Path()
-        path.header.frame_id = "map"
+        self.path.header.frame_id = "map"
         current_node = self.node_list[-1]
         while current_node.parent:
             pose = PoseStamped()
@@ -336,9 +324,9 @@ class RRT2DNode(Node):
             pose.pose.position.x = current_node.val[0]
             pose.pose.position.y = current_node.val[1]
             pose.pose.position.z = 0.0
-            path.poses.append(pose)
+            self.path.poses.append(pose)
             current_node = current_node.parent
-        self.path_publisher.publish(path)
+        self.path_publisher.publish(self.path)
 
 
 def main(args=None):
