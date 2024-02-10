@@ -113,7 +113,6 @@ class RRT3DNode(Node):
 
     def rrt_callback(self, request, response):
         """Service callback for running the RRT."""
-
         # Clear the markers and path
         self.marker_array = MarkerArray()
         clear_marker = Marker()
@@ -126,9 +125,11 @@ class RRT3DNode(Node):
 
         # Publish the start and goal markers
         self.marker_array.markers.append(create_marker(Marker.SPHERE, 0, [
-            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1], self.start_position[2]]))
+            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1],
+                                                   self.start_position[2]]))
         self.marker_array.markers.append(create_marker(Marker.SPHERE, 1, [
-            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1], self.goal_position[2]]))
+            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1],
+                                                   self.goal_position[2]]))
 
         # Run the RRT
         self.node_list = [self.start_node]
@@ -201,7 +202,8 @@ class RRT3DNode(Node):
                 min_node.add_child(new_node)
                 self.node_list.append(new_node)
                 marker = create_marker(Marker.SPHERE, self.node_list.index(new_node) + 2, [
-                    0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [new_node.val[0], new_node.val[1], new_node.val[2]])
+                    0.0, 1.0, 0.0, 1.0], [0.1, 0.1, 0.1], [new_node.val[0], new_node.val[1],
+                                                           new_node.val[2]])
                 self.marker_array.markers.append(marker)
                 self.marker_publisher.publish(self.marker_array)
         self.get_logger().info('Path not found')

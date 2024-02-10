@@ -129,7 +129,6 @@ class RRT2DNode(Node):
 
     def rrt_callback(self, request, response):
         """Service callback for running the RRT."""
-
         # Clear the markers and path
         self.marker_array = MarkerArray()
         clear_marker = Marker()
@@ -142,9 +141,11 @@ class RRT2DNode(Node):
 
         # Publish the start and goal markers
         self.marker_array.markers.append(create_marker(Marker.SPHERE, 0, [
-            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0], self.start_position[1], 0.0]))
+            1.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.2], [self.start_position[0],
+                                                   self.start_position[1], 0.0]))
         self.marker_array.markers.append(create_marker(Marker.SPHERE, 1, [
-            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0], self.goal_position[1], 0.0]))
+            0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2], [self.goal_position[0],
+                                                   self.goal_position[1], 0.0]))
 
         # Run the RRT
         self.node_list = [self.start_node]
