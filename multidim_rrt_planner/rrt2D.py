@@ -3,9 +3,10 @@ from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path, OccupancyGrid
+from std_srvs.srv import Empty
 import numpy as np
 from .TreeNode import TreeNode
-from .Marker import Circle, Rectangle, create_marker
+from .Marker import Circle, Rectangle, create_marker, delete_marker
 
 
 class RRT2DNode(Node):
@@ -118,13 +119,21 @@ class RRT2DNode(Node):
             self.obstacle_list = []
             self.obstacle_subscription = self.create_subscription(
                 MarkerArray, 'obstacle_markers_2D', self.obstacle_callback, 10)
+        self.rrt_srv = self.create_service(Empty, 'run_rrt', self.rrt_callback)
         self.start_node = TreeNode(self.start_position, None)
         self.node_list = [self.start_node]
         self.timer = self.create_timer(1.0, self.timer_callback)
+
+    def rrt_callback(self, request, response):
+        """Service callback for running the RRT."""
+        self.clear_markers()
+        self.node_list = [self.start_node]
         self.run_rrt_2D()
+        return response
 
     def run_rrt_2D(self):
         """Generate the RRT in 2D."""
+
         self.get_logger().info('Generating RRT...')
         if self.map_sub_mode:
             while self.map_data is None:
@@ -261,6 +270,17 @@ class RRT2DNode(Node):
         marker = create_marker(Marker.SPHERE, 1, [
             0.0, 0.0, 1.0, 1.0], [0.2, 0.2, 0.2],
             [self.goal_position[0], self.goal_position[1], 0.0])
+        marker_array.markers.append(marker)
+        self.marker_publisher.publish(marker_array)
+
+    def clear_markers(self):
+        marker_array = MarkerArray()
+        for node in self.node_list:
+            marker = delete_marker(self.node_list.index(node) + 2)
+            marker_array.markers.append(marker)
+        marker = delete_marker(0)
+        marker_array.markers.append(marker)
+        marker = delete_marker(1)
         marker_array.markers.append(marker)
         self.marker_publisher.publish(marker_array)
 
